@@ -2,5 +2,5 @@
 
 int main()
 {
-	print("test");
+	print("hi, i'm ivan'");
 }
