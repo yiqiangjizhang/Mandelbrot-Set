@@ -42,11 +42,11 @@ void createMap(int NPX, int NPY,				   // number of processors in each direction
 	worksplit(&map->sx, &map->ex, proc, NPX, gsx, gex);
 	printf("So, as I'm processor %d, I start with x%d and end with x%d\n", proc, map->sx, map->ex);
 
-	if (proc < NPY)
-	{
+	// if (proc < NPY)
+	// {
 		worksplit(&map->sy, &map->ey, proc, NPY, gsy, gey);
 		printf("So, as I'm processor %d, I start with y%d and end with y%d\n", proc, map->sy, map->ey);
-	}
+	// }
 }
 
 void printMap(MAP *map)
@@ -94,13 +94,13 @@ void addField(double *u, double *v, double *w, MAP *map)
 int main(int argc, char **argv)
 {
 	// Declare variables
-	int NPX = 1;
-	int NPY = 1;
+	int NPX = 2;
+	int NPY = 2;
 	int gsx = 1;
 	int gex = 4;
 	int gsy = 1;
 	int gey = 4;
-	int hs = 2;
+	int hs = 0;
 
   int r;     // for error checking
 	double u_,v_,w_;
@@ -138,40 +138,65 @@ int main(int argc, char **argv)
 
 // Worksplit function
 
-void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end)
-{
-	// Number of tasks
-	int ntask = end - start + 1;
-	// printf("Number of operations %d\n", ntask);
+void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end) {
+  int ntask = end-start+1;
+  int interval = ntask/nproc;
+  int remainder = ntask%nproc;
 
-	// Number of tasks per processor
-	int tpProcessor = ntask / nproc;
-	// printf("tpProcessor %d\n", tpProcessor);
-
-	// Tasks left
-	int remainder_tpProcessor = ntask % nproc;
-	// printf("Remainder of tpProcessor %d\n", remainder_tpProcessor);
-
-	// Algorithm for worksplit
-	if (remainder_tpProcessor == 0)
-	{
-		*mystart = proc * tpProcessor + start;
-		*myend = *mystart + tpProcessor - 1;
-	}
-	else
-	{
-		if (proc < remainder_tpProcessor)
-		{
-			*mystart = proc * (tpProcessor + 1) + start;
-			*myend = *mystart + tpProcessor;
-		}
-		else
-		{
-			*mystart = remainder_tpProcessor * (tpProcessor + 1) + (proc - remainder_tpProcessor) * tpProcessor + start;
-			*myend = *mystart + tpProcessor - 1;
-		}
-	}
+  if (remainder != 0) {
+    if(proc<remainder) {
+      *mystart = start + proc * (interval +1);
+      *myend = *mystart + interval;
+    }
+    else if (proc > ntask) {
+      *mystart = -1;
+      *myend = -1;
+    }
+    else {
+      *mystart = start + remainder*(interval+1)+(proc-remainder)*interval;
+      *myend = *mystart + interval -1;
+    }
+  }
+  else {
+    *mystart = start + proc * interval;
+    *myend = *mystart + (interval -1);
+  }
 }
+
+// void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end)
+// {
+// 	// Number of tasks
+// 	int ntask = end - start + 1;
+// 	// printf("Number of operations %d\n", ntask);
+//
+// 	// Number of tasks per processor
+// 	int tpProcessor = ntask / nproc;
+// 	// printf("tpProcessor %d\n", tpProcessor);
+//
+// 	// Tasks left
+// 	int remainder_tpProcessor = ntask % nproc;
+// 	// printf("Remainder of tpProcessor %d\n", remainder_tpProcessor);
+//
+// 	// Algorithm for worksplit
+// 	if (remainder_tpProcessor == 0)
+// 	{
+// 		*mystart = proc * tpProcessor + start;
+// 		*myend = *mystart + tpProcessor - 1;
+// 	}
+// 	else
+// 	{
+// 		if (proc < remainder_tpProcessor)
+// 		{
+// 			*mystart = proc * (tpProcessor + 1) + start;
+// 			*myend = *mystart + tpProcessor;
+// 		}
+// 		else
+// 		{
+// 			*mystart = remainder_tpProcessor * (tpProcessor + 1) + (proc - remainder_tpProcessor) * tpProcessor + start;
+// 			*myend = *mystart + tpProcessor - 1;
+// 		}
+// 	}
+// }
 
 // we use this function to check the return value of every MPI call
 void checkr(int r, char *txt)
