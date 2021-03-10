@@ -36,6 +36,7 @@ void createMap(int NPX, int NPY,				   // number of processors in each direction
 	// a worksplit for each direction has to be done
 	// map->sx = ... ;
 	// map->sy = ... ;
+	map->hs = hs;
 
 	worksplit(&map->sx, &map->ex,proc,NPX,gsx,gex);
   printf("So, as I'm processor %d, I start with x%d and end with x%d\n",proc,map->sx,map->ex);
@@ -51,11 +52,18 @@ void printMap(MAP* map)
 }
 double* allocField(MAP *map)
 {
-  double* aux;
-
-  aux = (double*) malloc(sizeof(double)*(map->ex-map->sx+1+2*map->hs)*(map->ey-map->sy+1+2*map->hs));
-  // allocs memory field
+	// allocs memory field
 	// calculate the size of the field
+	double* aux;
+	printf("testeamos : %d %d %d %d %d.\n",map->sx,map->ex,map->sy,map->ey,map->hs);
+  aux = (double*) malloc(sizeof(double)*(map->ex-map->sx+1+2*map->hs)*(map->ey-map->sy+1+2*map->hs));
+
+	//if memory cannot be allocat
+	if(aux == NULL)
+  {
+    printf("Error! Memory not allocated.\n");
+    exit(-1);
+  }
   return aux;
 }
 void printField(double *u, MAP *map)
@@ -84,13 +92,16 @@ int main(int argc, char **argv)
 	int NPX = 4;
 	int NPY = 1;
 	int gsx = 1;
-	int gex = 10;
+	int gex = 12;
 	int gsy = 1;
-	int gey = 4;
+	int gey = 12;
 	int hs = 2;
 
   int r;     // for error checking
-  double *u,*v,*w;
+	double u_,v_,w_;
+	double* u = &u_;
+	// double* v = &v_;
+	// double* w = &w_;
 
   // double *u, *v, *w;
 	MAP map_;
@@ -100,17 +111,20 @@ int main(int argc, char **argv)
 
 	createMap(NPX, NPY,			  // number of processors in each direction
 			  gsx, gex, gsy, gey, // GLOBAL limits
-			  hs,				  // Halo size
+			  hs,				          // Halo size
 			  map);
   // createMap(1, 12, 1, 12, 2, map);
 
 	u = allocField(map); // this is a pointer!
-	v = allocField(map);
-	w = allocField(map);
+	printf("memory allocated!\n");
+	// v = allocField(map);
+	// w = allocField(map);
   printField(u, map);
+	printf("field printed!\n");
 	// printField(u, map);
-	// free(u);
-	// exit(0);
+
+	free(u);
+
   MPI_Finalize();
 
   exit(0);
