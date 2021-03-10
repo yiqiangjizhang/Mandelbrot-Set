@@ -57,7 +57,7 @@ double *allocField(MAP *map)
 	// allocs memory field
 	// calculate the size of the field
 	double* aux;
-	printf("testeamos : %d %d %d %d %d.\n",map->sx,map->ex,map->sy,map->ey,map->hs);
+	printf("debug: %d %d %d %d %d\n",map->sx,map->ex,map->sy,map->ey,map->hs);
   aux = (double*) malloc(sizeof(double)*(map->ex-map->sx+1+2*map->hs)*(map->ey-map->sy+1+2*map->hs));
 
 	//if memory cannot be allocat
@@ -76,8 +76,9 @@ void printField(double *u, MAP *map)
 		for (int i = map->sx; i <= (map->ex); i++)
 		{
 			U(i, j) = (i - map->sx + map->hs) + (j - map->sy + map->hs) * (map->ex - map->sx + 1 + 2 * map->hs);
-			printf("%lf\n", U(i, j));
+			printf("%lf ", U(i, j));
 		}
+		printf("\n");
 	}
 }
 // u=v+w
@@ -93,12 +94,12 @@ void addField(double *u, double *v, double *w, MAP *map)
 int main(int argc, char **argv)
 {
 	// Declare variables
-	int NPX = 4;
+	int NPX = 1;
 	int NPY = 1;
 	int gsx = 1;
-	int gex = 12;
+	int gex = 4;
 	int gsy = 1;
-	int gey = 12;
+	int gey = 4;
 	int hs = 2;
 
   int r;     // for error checking
@@ -131,8 +132,6 @@ int main(int argc, char **argv)
 	free(u);
 
   MPI_Finalize();
-
-  exit(0);
 
 	exit(0);
 }
