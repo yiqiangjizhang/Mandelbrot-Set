@@ -56,17 +56,17 @@ double *allocField(MAP *map)
 {
 	// allocs memory field
 	// calculate the size of the field
-	double* aux;
-	printf("debug: %d %d %d %d %d\n",map->sx,map->ex,map->sy,map->ey,map->hs);
-  aux = (double*) malloc(sizeof(double)*(map->ex-map->sx+1+2*map->hs)*(map->ey-map->sy+1+2*map->hs));
+	double *aux;
+	printf("debug: %d %d %d %d %d\n", map->sx, map->ex, map->sy, map->ey, map->hs);
+	aux = (double *)malloc(sizeof(double) * (map->ex - map->sx + 1 + 2 * map->hs) * (map->ey - map->sy + 1 + 2 * map->hs));
 
 	//if memory cannot be allocat
-	if(aux == NULL)
-  {
-    printf("Error! Memory not allocated.\n");
-    exit(-1);
-  }
-  return aux;
+	if (aux == NULL)
+	{
+		printf("Error! Memory not allocated.\n");
+		exit(-1);
+	}
+	return aux;
 }
 void printField(double *u, MAP *map)
 {
@@ -102,9 +102,9 @@ int main(int argc, char **argv)
 	int gey = 4;
 	int hs = 0;
 
-  int r;     // for error checking
-	double u_,v_,w_;
-	double* u = &u_;
+	int r; // for error checking
+	double u_, v_, w_;
+	double *u = &u_;
 	// double* v = &v_;
 	// double* w = &w_;
 
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 
 	createMap(NPX, NPY,			  // number of processors in each direction
 			  gsx, gex, gsy, gey, // GLOBAL limits
-			  hs,				          // Halo size
+			  hs,				  // Halo size
 			  map);
 	// createMap(1, 12, 1, 12, 2, map);
 
@@ -125,13 +125,13 @@ int main(int argc, char **argv)
 	printf("memory allocated!\n");
 	// v = allocField(map);
 	// w = allocField(map);
-  printField(u, map);
+	printField(u, map);
 	printf("field printed!\n");
 	// printField(u, map);
 
 	free(u);
 
-  MPI_Finalize();
+	MPI_Finalize();
 
 	exit(0);
 }
