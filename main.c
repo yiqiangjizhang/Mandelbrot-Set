@@ -39,14 +39,13 @@ void createMap(int NPX, int NPY,				   // number of processors in each direction
 	// map->sy = ... ;
 	map->hs = hs;
 
+
 	worksplit(&map->sx, &map->ex, proc, NPX, gsx, gex);
 	printf("So, as I'm processor %d, I start with x%d and end with x%d\n", proc, map->sx, map->ex);
 
-	// if (proc < NPY)
-	// {
-		worksplit(&map->sy, &map->ey, proc, NPY, gsy, gey);
-		printf("So, as I'm processor %d, I start with y%d and end with y%d\n", proc, map->sy, map->ey);
-	// }
+	worksplit(&map->sy, &map->ey, proc, NPY, gsy, gey);
+	printf("So, as I'm processor %d, I start with y%d and end with y%d\n", proc, map->sy, map->ey);
+
 }
 
 void printMap(MAP *map)
