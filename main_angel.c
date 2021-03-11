@@ -11,6 +11,20 @@
 void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end);
 void checkr(int r, char *txt);
 
+int quisoc() {
+  int a,b;
+  a=MPI_Comm_rank(MPI_COMM_WORLD,&b);
+  checkr(a,"quisoc");
+  return(b);
+}
+
+int quants() {
+  int a,b;
+  a=MPI_Comm_size(MPI_COMM_WORLD,&b);
+  checkr(a,"quants");
+  return(b);
+}
+
 // This structure contains all the data to access a distributed 2d array
 typedef struct Maps
 {
@@ -55,15 +69,15 @@ void createMap(int NPX, int NPY,				   // number of processors in each direction
 
   if (proc < NPX) {
   	// first raw of processors
-    worksplit(&map->sx, &map->ex, proc, NPX, gsx, gex);
+    worksplit(&(map->sx), &(map->ex), proc, NPX, gsx, gex);
     printf("So, as I'm processor %d, I start with x%d and end with x%d\n", proc, map->sx, map->ex);
   }
   else {
-    worksplit(&map->sx, &map->ex, proc%NPX, NPX, gsx, gex);
+    worksplit(&(map->sx), &(map->ex), proc%NPX, NPX, gsx, gex);
     printf("So, as I'm processor %d, I start with x%d and end with x%d\n", proc, map->sx, map->ex);
   }
-  
-   	worksplit(&map->sy, &map->ey, proc/NPX, NPY, gsy, gey);
+
+   	worksplit(&(map->sy), &(map->ey), proc/NPX, NPY, gsy, gey);
   	printf("So, as I'm processor %d, I start with y%d and end with y%d\n", proc, map->sy, map->ey);
 
 }
@@ -94,7 +108,6 @@ void printField(double *u, MAP *map)
 	{
 		for (int i = map->sx; i <= (map->ex); i++)
 		{
-			U(i, j) = (i - map->sx + map->hs) + (j - map->sy + map->hs) * (map->ex - map->sx + 1 + 2 * map->hs);
 			printf("%lf ", U(i, j));
 		}
 		printf("\n");
@@ -119,15 +132,11 @@ int main(int argc, char **argv)
 	int gex = 4;
 	int gsy = 1;
 	int gey = 4;
-	int hs = 0;
+	int hs = 2;
 
 	int r; // for error checking
-	double u_, v_, w_;
-	double *u = &u_;
-	// double* v = &v_;
-	// double* w = &w_;
 
-	// double *u, *v, *w;
+	double *u, *v, *w;
 	MAP map_;
 	MAP *map = &map_;
 
