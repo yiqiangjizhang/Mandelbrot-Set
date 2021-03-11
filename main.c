@@ -42,11 +42,11 @@ void createMap(int NPX, int NPY,				   // number of processors in each direction
 	worksplit(&map->sx, &map->ex, proc, NPX, gsx, gex);
 	printf("So, as I'm processor %d, I start with x%d and end with x%d\n", proc, map->sx, map->ex);
 
-	if (proc < NPY)
-	{
+	// if (proc < NPY)
+	// {
 		worksplit(&map->sy, &map->ey, proc, NPY, gsy, gey);
 		printf("So, as I'm processor %d, I start with y%d and end with y%d\n", proc, map->sy, map->ey);
-	}
+	// }
 }
 
 void printMap(MAP *map)
@@ -56,17 +56,17 @@ double *allocField(MAP *map)
 {
 	// allocs memory field
 	// calculate the size of the field
-	double* aux;
-	printf("testeamos : %d %d %d %d %d.\n",map->sx,map->ex,map->sy,map->ey,map->hs);
-  aux = (double*) malloc(sizeof(double)*(map->ex-map->sx+1+2*map->hs)*(map->ey-map->sy+1+2*map->hs));
+	double *aux;
+	printf("debug: %d %d %d %d %d\n", map->sx, map->ex, map->sy, map->ey, map->hs);
+	aux = (double *)malloc(sizeof(double) * (map->ex - map->sx + 1 + 2 * map->hs) * (map->ey - map->sy + 1 + 2 * map->hs));
 
 	//if memory cannot be allocat
-	if(aux == NULL)
-  {
-    printf("Error! Memory not allocated.\n");
-    exit(-1);
-  }
-  return aux;
+	if (aux == NULL)
+	{
+		printf("Error! Memory not allocated.\n");
+		exit(-1);
+	}
+	return aux;
 }
 void printField(double *u, MAP *map)
 {
@@ -76,8 +76,9 @@ void printField(double *u, MAP *map)
 		for (int i = map->sx; i <= (map->ex); i++)
 		{
 			U(i, j) = (i - map->sx + map->hs) + (j - map->sy + map->hs) * (map->ex - map->sx + 1 + 2 * map->hs);
-			printf("%lf\n", U(i, j));
+			printf("%lf ", U(i, j));
 		}
+		printf("\n");
 	}
 }
 // u=v+w
@@ -93,17 +94,17 @@ void addField(double *u, double *v, double *w, MAP *map)
 int main(int argc, char **argv)
 {
 	// Declare variables
-	int NPX = 4;
-	int NPY = 1;
+	int NPX = 2;
+	int NPY = 2;
 	int gsx = 1;
-	int gex = 12;
+	int gex = 4;
 	int gsy = 1;
-	int gey = 12;
-	int hs = 2;
+	int gey = 4;
+	int hs = 0;
 
-  int r;     // for error checking
-	double u_,v_,w_;
-	double* u = &u_;
+	int r; // for error checking
+	double u_, v_, w_;
+	double *u = &u_;
 	// double* v = &v_;
 	// double* w = &w_;
 
@@ -116,7 +117,7 @@ int main(int argc, char **argv)
 
 	createMap(NPX, NPY,			  // number of processors in each direction
 			  gsx, gex, gsy, gey, // GLOBAL limits
-			  hs,				          // Halo size
+			  hs,				  // Halo size
 			  map);
 	// createMap(1, 12, 1, 12, 2, map);
 
@@ -124,55 +125,78 @@ int main(int argc, char **argv)
 	printf("memory allocated!\n");
 	// v = allocField(map);
 	// w = allocField(map);
-  printField(u, map);
+	printField(u, map);
 	printf("field printed!\n");
 	// printField(u, map);
 
 	free(u);
 
-  MPI_Finalize();
-
-  exit(0);
+	MPI_Finalize();
 
 	exit(0);
 }
 
 // Worksplit function
 
-void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end)
-{
-	// Number of tasks
-	int ntask = end - start + 1;
-	// printf("Number of operations %d\n", ntask);
+void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end) {
+  int ntask = end-start+1;
+  int interval = ntask/nproc;
+  int remainder = ntask%nproc;
 
-	// Number of tasks per processor
-	int tpProcessor = ntask / nproc;
-	// printf("tpProcessor %d\n", tpProcessor);
-
-	// Tasks left
-	int remainder_tpProcessor = ntask % nproc;
-	// printf("Remainder of tpProcessor %d\n", remainder_tpProcessor);
-
-	// Algorithm for worksplit
-	if (remainder_tpProcessor == 0)
-	{
-		*mystart = proc * tpProcessor + start;
-		*myend = *mystart + tpProcessor - 1;
-	}
-	else
-	{
-		if (proc < remainder_tpProcessor)
-		{
-			*mystart = proc * (tpProcessor + 1) + start;
-			*myend = *mystart + tpProcessor;
-		}
-		else
-		{
-			*mystart = remainder_tpProcessor * (tpProcessor + 1) + (proc - remainder_tpProcessor) * tpProcessor + start;
-			*myend = *mystart + tpProcessor - 1;
-		}
-	}
+  if (remainder != 0) {
+    if(proc<remainder) {
+      *mystart = start + proc * (interval +1);
+      *myend = *mystart + interval;
+    }
+    else if (proc > ntask) {
+      *mystart = -1;
+      *myend = -1;
+    }
+    else {
+      *mystart = start + remainder*(interval+1)+(proc-remainder)*interval;
+      *myend = *mystart + interval -1;
+    }
+  }
+  else {
+    *mystart = start + proc * interval;
+    *myend = *mystart + (interval -1);
+  }
 }
+
+// void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end)
+// {
+// 	// Number of tasks
+// 	int ntask = end - start + 1;
+// 	// printf("Number of operations %d\n", ntask);
+//
+// 	// Number of tasks per processor
+// 	int tpProcessor = ntask / nproc;
+// 	// printf("tpProcessor %d\n", tpProcessor);
+//
+// 	// Tasks left
+// 	int remainder_tpProcessor = ntask % nproc;
+// 	// printf("Remainder of tpProcessor %d\n", remainder_tpProcessor);
+//
+// 	// Algorithm for worksplit
+// 	if (remainder_tpProcessor == 0)
+// 	{
+// 		*mystart = proc * tpProcessor + start;
+// 		*myend = *mystart + tpProcessor - 1;
+// 	}
+// 	else
+// 	{
+// 		if (proc < remainder_tpProcessor)
+// 		{
+// 			*mystart = proc * (tpProcessor + 1) + start;
+// 			*myend = *mystart + tpProcessor;
+// 		}
+// 		else
+// 		{
+// 			*mystart = remainder_tpProcessor * (tpProcessor + 1) + (proc - remainder_tpProcessor) * tpProcessor + start;
+// 			*myend = *mystart + tpProcessor - 1;
+// 		}
+// 	}
+// }
 
 // we use this function to check the return value of every MPI call
 void checkr(int r, char *txt)
