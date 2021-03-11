@@ -4,12 +4,28 @@
 #include <math.h>	// Math library
 #include "mpi.h"	// MPI library
 
-// #define U(x,y) *(u + (x-sx+hs)+(y-sy+hs)*(ex-sx+1+2*hs));
+// Macro to access field u, v and w
 #define U(x, y) *(u + (x - map->sx + map->hs) + (y - map->sy + map->hs) * (map->ex - map->sx + 1 + 2 * map->hs))
+#define V(x, y) *(v + (x - map->sx + map->hs) + (y - map->sy + map->hs) * (map->ex - map->sx + 1 + 2 * map->hs))
+#define W(x, y) *(w + (x - map->sx + map->hs) + (y - map->sy + map->hs) * (map->ex - map->sx + 1 + 2 * map->hs))
 
 // Prototypes
 void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end);
 void checkr(int r, char *txt);
+
+int quisoc() {
+  int a,b;
+  a=MPI_Comm_rank(MPI_COMM_WORLD,&b);
+  checkr(a,"quisoc");
+  return(b);
+}
+
+int quants() {
+  int a,b;
+  a=MPI_Comm_size(MPI_COMM_WORLD,&b);
+  checkr(a,"quants");
+  return(b);
+}
 
 // This structure contains all the data to access a distributed 2d array
 typedef struct Maps
@@ -19,45 +35,58 @@ typedef struct Maps
 	//.... maybe we will need more data
 } MAP;
 
-// Macro to access field u
-// define U(i,j) *( u + ... (map->sx)...)
-// define V(i,j)
 void createMap(int NPX, int NPY,				   // number of processors in each direction
 			   int gsx, int gex, int gsy, int gey, // GLOBAL limits
 			   int hs,							   // Halo size
 			   MAP *map)
 {
-	int proc; // From 0 to P-1
-	int r;	  // for error checking
-
-	r = MPI_Comm_rank(MPI_COMM_WORLD, &proc);
-	checkr(r, "rank");
-
 	// each processor creates its map, filling in its values for sx,ex,sy,ey using worksplit
 	// a worksplit for each direction has to be done
 	// map->sx = ... ;
 	// map->sy = ... ;
 	map->hs = hs;
+	map->sy = gsy;
+	map->ey = gey;
+    worksplit(&(map->sx), &(map->ex), quisoc(), quants(), gsx, gex);
 
-	worksplit(&map->sx, &map->ex, proc, NPX, gsx, gex);
-	printf("So, as I'm processor %d, I start with x%d and end with x%d\n", proc, map->sx, map->ex);
+}
 
-	// if (proc < NPY)
-	// {
-		worksplit(&map->sy, &map->ey, proc, NPY, gsy, gey);
-		printf("So, as I'm processor %d, I start with y%d and end with y%d\n", proc, map->sy, map->ey);
-	// }
+void createglobalMap(int NPX, int NPY,				   // number of processors in each direction
+			   int gsx, int gex, int gsy, int gey) // GLOBAL limits
+{
+	// processor 0 creates the global map
+    
+
+}
+
+double *globalField(int gsx, int gex, int gsy, int gey) // GLOBAL limits
+{
+	// allocs memory field
+	// calculate the size of the field
+	double *aux;
+	// printf("debug: %d %d %d %d %d\n", map->sx, map->ex, map->sy, map->ey, map->hs);
+	aux = (double *)malloc(sizeof(double) * (gex - gsx + 1) * (gey - gsy + 1));
+
+	//if memory cannot be allocat
+	if (aux == NULL)
+	{
+		printf("Error! Memory not allocated.\n");
+		exit(-1);
+	}
+	return aux;
 }
 
 void printMap(MAP *map)
 { // prints my memory map
+    printf("So, as I'm processor %d, I start with x%d and end with x%d\n", quisoc(), map->sx, map->ex);
 }
+
 double *allocField(MAP *map)
 {
 	// allocs memory field
 	// calculate the size of the field
 	double *aux;
-	printf("debug: %d %d %d %d %d\n", map->sx, map->ex, map->sy, map->ey, map->hs);
+	// printf("debug: %d %d %d %d %d\n", map->sx, map->ex, map->sy, map->ey, map->hs);
 	aux = (double *)malloc(sizeof(double) * (map->ex - map->sx + 1 + 2 * map->hs) * (map->ey - map->sy + 1 + 2 * map->hs));
 
 	//if memory cannot be allocat
@@ -68,6 +97,19 @@ double *allocField(MAP *map)
 	}
 	return aux;
 }
+
+void fillField(double *u, MAP *map)
+{
+	// each processor fill its part of the field
+	for (int j = map->sy; j <= (map->ey); j++)
+	{
+		for (int i = map->sx; i <= (map->ex); i++)
+		{
+			U(i, j) = (i + j/10.0);
+		}
+	}
+}
+
 void printField(double *u, MAP *map)
 {
 	// each processor prints its part of the field
@@ -75,7 +117,6 @@ void printField(double *u, MAP *map)
 	{
 		for (int i = map->sx; i <= (map->ex); i++)
 		{
-			U(i, j) = (i - map->sx + map->hs) + (j - map->sy + map->hs) * (map->ex - map->sx + 1 + 2 * map->hs);
 			printf("%lf ", U(i, j));
 		}
 		printf("\n");
@@ -85,30 +126,31 @@ void printField(double *u, MAP *map)
 void addField(double *u, double *v, double *w, MAP *map)
 {
 	// each processor sweeps its part of the field
-	// int i,j;
-	// for (j=map->sy; j<=map->ey; j++)
-	// for (i=map->sx; i<=map->ex; i++)
-	// U(i,j)=V(i,j)+W(i,j);
+	for (int j = map->sy; j <= (map->ey); j++)
+	{
+		for (int i = map->sx; i <= (map->ex); i++)
+		{
+			U(i, j) = V(i, j) + W(i, j);
+		}
+		printf("\n");
+	}
 }
 
 int main(int argc, char **argv)
 {
 	// Declare variables
 	int NPX = 2;
-	int NPY = 2;
+	int NPY = 1;
 	int gsx = 1;
 	int gex = 4;
 	int gsy = 1;
-	int gey = 4;
-	int hs = 0;
+	int gey = 1;
+	int hs = 2;
 
 	int r; // for error checking
-	double u_, v_, w_;
-	double *u = &u_;
-	// double* v = &v_;
-	// double* w = &w_;
+	int t = 0; // tag
 
-	// double *u, *v, *w;
+	double *u, *v, *w;
 	MAP map_;
 	MAP *map = &map_;
 
@@ -119,17 +161,44 @@ int main(int argc, char **argv)
 			  gsx, gex, gsy, gey, // GLOBAL limits
 			  hs,				  // Halo size
 			  map);
-	// createMap(1, 12, 1, 12, 2, map);
+	
+	printMap(map);
 
 	u = allocField(map); // this is a pointer!
+	v = allocField(map);
+	w = allocField(map);
 	printf("memory allocated!\n");
-	// v = allocField(map);
-	// w = allocField(map);
+	fillField(u, map);
+	printField(u, map);
+	fillField(v, map);
+	printField(v, map);
+	fillField(w, map);
+	printField(w, map);
+	printf("field printed!\n");
+
+	addField(u, v, w, map);
+
 	printField(u, map);
 	printf("field printed!\n");
-	// printField(u, map);
+
+	globalField(gsx, gex, gsy, gey);
+
+
+
+	// if (quisoc()==0) {
+ //    r=MPI_Recv (u,3,MPI_DOUBLE,1/*origin*/ ,t,MPI_COMM_WORLD,&st);
+ //    // We accept 3 doubles from 1, with tag t
+ //    checkr(r,"receive0");
+ //  	} else {
+ //    r=MPI_Recv   (vr,3,MPI_DOUBLE,0 /*origin*/,t,MPI_COMM_WORLD,&st);
+ //    checkr(r,"receive1");
+ //    r=MPI_Ssend(vs,3,MPI_DOUBLE,0 /*destination*/ ,t,MPI_COMM_WORLD    );
+ //    checkr(r,"send1");
+ //  	}
 
 	free(u);
+	free(v);
+	free(w);
 
 	MPI_Finalize();
 
