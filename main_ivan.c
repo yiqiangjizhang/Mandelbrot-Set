@@ -39,12 +39,28 @@ void createMap(int NPX, int NPY,				   // number of processors in each direction
 	// map->sy = ... ;
 	map->hs = hs;
 
+  // if (proc%NPX == 0 && proc != 0) {
+  //   worksplit(&map->sx, &map->ex, proc-proc/NPX, NPX, gsx, gex);
+  // }
+  // else if (proc == 0) {
+  //
+  // }
+  // else {
+  //   worksplit(&map->sx, &map->ex, proc%NPX, NPX, gsx, gex);
+  // }
+  // printf("So, as I'm processor %d, I start with x%d and end with x%d\n", proc, map->sx, map->ex);
+  //
+	// worksplit(&map->sy, &map->ey, proc/NPX, NPY, gsy, gey);
+	// printf("So, as I'm processor %d, I start with y%d and end with y%d\n", proc, map->sy, map->ey);
 
-	worksplit(&map->sx, &map->ex, proc, NPX, gsx, gex);
-	printf("So, as I'm processor %d, I start with x%d and end with x%d\n", proc, map->sx, map->ex);
-
-	worksplit(&map->sy, &map->ey, proc, NPY, gsy, gey);
-	printf("So, as I'm processor %d, I start with y%d and end with y%d\n", proc, map->sy, map->ey);
+  if (proc < NPX) {
+    worksplit(&map->sx, &map->ex, proc, NPX, gsx, gex);
+    printf("So, as I'm processor %d, I start with x%d and end with x%d\n", proc, map->sx, map->ex);
+  }
+  else {
+    worksplit(&map->sy, &map->ey, proc%NPX, NPY, gsy, gey);
+  	printf("So, as I'm processor %d, I start with y%d and end with y%d\n", proc, map->sy, map->ey);
+  }
 
 }
 
