@@ -2,11 +2,11 @@
 #include <stdio.h>	// Standard Input and Output Library
 #include <stdlib.h> // Library for defining functions to perform general functions (malloc())
 #include <math.h>	// Math library
-#include <time.h>   // Library that contains time functions
 #include "mpi.h"	// MPI library
 
 #define U(x, y) *(u + (x - map->sx + map->hs) + (y - map->sy + map->hs) * (map->ex - map->sx + 1 + 2 * map->hs))
 #define V(x, y) *(v + (x - map->sx + map->hs) + (y - map->sy + map->hs) * (map->ex - map->sx + 1 + 2 * map->hs))
+#define W(x, y) *(w + (x - map->sx + map->hs) + (y - map->sy + map->hs) * (map->ex - map->sx + 1 + 2 * map->hs))
 
 // Prototypes
 void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end);
@@ -107,7 +107,7 @@ void addField(double *u, double *v, double *w, MAP *map)
 	{
 		for (int i = map->sx; i <= (map->ex); i++)
 		{
-			printf("%lf ", U(i, j));
+			U(i, j) = V(i, j) + W(i, j);
 		}
 		printf("\n");
 	}
@@ -115,8 +115,6 @@ void addField(double *u, double *v, double *w, MAP *map)
 
 int main(int argc, char **argv)
 {
-	srand(time(0));
-
 	// Declare variables
 	int NPX = 2;
 	int NPY = 1;
@@ -144,16 +142,24 @@ int main(int argc, char **argv)
 
 	u = allocField(map); // this is a pointer!
 	v = allocField(map);
-	// w = allocField(map);
+	w = allocField(map);
 	printf("memory allocated!\n");
 	fillField(u, map);
 	printField(u, map);
 	fillField(v, map);
 	printField(v, map);
+	fillField(w, map);
+	printField(w, map);
 	printf("field printed!\n");
-	// printField(u, map);
+
+	addField(u, v, w, map);
+
+	printField(u, map);
+	printf("field printed!\n");
 
 	free(u);
+	free(v);
+	free(w);
 
 	MPI_Finalize();
 
