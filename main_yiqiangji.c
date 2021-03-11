@@ -10,6 +10,8 @@
 // Prototypes
 void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end);
 void checkr(int r, char *txt);
+int quisoc();
+int quants();
 
 // This structure contains all the data to access a distributed 2d array
 typedef struct Maps
@@ -42,15 +44,12 @@ void createMap(int NPX, int NPY,				   // number of processors in each direction
 	worksplit(&map->sx, &map->ex, proc, NPX, gsx, gex);
 	printf("So, as I'm processor %d, I start with x%d and end with x%d\n", proc, map->sx, map->ex);
 
-	// if (proc < NPY)
-	// {
-	worksplit(&map->sy, &map->ey, proc, NPY, gsy, gey);
-	printf("So, as I'm processor %d, I start with y%d and end with y%d\n", proc, map->sy, map->ey);
 	// }
 }
 
 void printMap(MAP *map)
 { // prints my memory map
+	printf("So, as I'm processor %d, I start with x%d and end with x%d\n", proc, map->sx, map->ex);
 }
 double *allocField(MAP *map)
 {
@@ -212,4 +211,20 @@ void checkr(int r, char *txt)
 		fprintf(stderr, "Error: %s\n", txt);
 		exit(-1);
 	}
+}
+
+int quisoc()
+{
+	int a, b;
+	a = MPI_Comm_rank(MPI_COMM_WORLD, &b);
+	checkr(a, "quisoc");
+	return (b);
+}
+
+int quants()
+{
+	int a, b;
+	a = MPI_Comm_size(MPI_COMM_WORLD, &b);
+	checkr(a, "quants");
+	return (b);
 }
