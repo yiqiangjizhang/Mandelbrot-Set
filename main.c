@@ -1,10 +1,25 @@
+/* Mandelbrot set
+
+Date: 27/02/2021
+Author/s: Group 1
+Subject: High Performance Computing for Aerospace Engineering
+Professor: Manel Soria & Arnau Miro
+
+
+// Problem statement
+-------------------------------------------------------------------------
+Plot Mandelbrot set using MPI
+-------------------------------------------------------------------------
+
+*/
+
 // Libraries
 #include <stdio.h>	// Standard Input and Output Library
 #include <stdlib.h> // Library for defining functions to perform general functions (malloc())
 #include <math.h>	// Math library
 #include "mpi.h"	// MPI library
 
-// Macro to access field u, v and w
+// Macro to access field u, v and w and GLOB
 #define U(x, y) *(u + (x - map->sx + map->hs) + (y - map->sy + map->hs) * (map->ex - map->sx + 1 + 2 * map->hs))
 #define V(x, y) *(v + (x - map->sx + map->hs) + (y - map->sy + map->hs) * (map->ex - map->sx + 1 + 2 * map->hs))
 #define W(x, y) *(w + (x - map->sx + map->hs) + (y - map->sy + map->hs) * (map->ex - map->sx + 1 + 2 * map->hs))
@@ -19,69 +34,80 @@ typedef struct Maps
 } MAP;
 
 // Prototypes
-void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end);
-void checkr(int r, char *txt);
-int proc();
-int nproc();
-void createMap(int NPX, int NPY, int gsx, int gex, int gsy, int gey, int hs, MAP *map);
-void createglobalMap(int NPX, int NPY, int gsx, int gex, int gsy, int gey);
-double *globalField(int gsx, int gex, int gsy, int gey);
-void printMap(MAP *map);
-double *allocField(MAP *map);
-void fillField(double *u, MAP *m);
-void printField(double *u, MAP *map);
-void addField(double *u, double *v, double *w, MAP *map);
-void fillGlobalField(double *u, MAP *map, double *glob);
+void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end);		// Worksplit action
+void checkr(int r, char *txt);															// Check state
+int proc();																				// Rank of the actual processor
+int nproc();																			// Size of total number processors
+void createMap(int NPX, int NPY, int gsx, int gex, int gsy, int gey, int hs, MAP *map); // Each processor create its own local map
+void createglobalMap(int NPX, int NPY, int gsx, int gex, int gsy, int gey);				// Global map
+double *allocGlobalMap(int gsx, int gex, int gsy, int gey);								// Allocate memory for the global field
+void printMap(MAP *map);																// Print actual processor rank, mystart and myend
+double *allocField(MAP *map);															// Allocate memory for local map
+void fillField(double *u, MAP *m);														// Fill local map with values
+void printField(double *u, MAP *map);													// Print local map values
+void addField(double *u, double *v, double *w, MAP *map);								// Add map values
+void fillGlobalField(double *u, MAP *map, double *glob);								// Fill global field with each processor's values
 
+// Main
 int main(int argc, char **argv)
 {
 	// Declare variables
-	int NPX = 2;
-	int NPY = 1;
-	int gsx = 1;
-	int gex = 4;
-	int gsy = 1;
-	int gey = 1;
-	int hs = 2;
+	int NPX = 2; // Number of processors in X axis
+	int NPY = 1; // Number of processors in Y axis
+	int gsx = 1; // Global X start index
+	int gex = 4; // Global X end index
+	int gsy = 1; // Global Y start index
+	int gey = 1; // Global Y end index
+	int hs = 2;	 // Halo size
 
-	int r; // for error checking
+	// MPI error return value
+	int r;
 
 	double *u, *v, *w, *glob;
 	MAP map_;
 	MAP *map = &map_;
 
+	// Initate MPI
 	r = MPI_Init(&argc, &argv);
 	checkr(r, "init");
 
+	// Create each processors map
 	createMap(NPX, NPY,			  // number of processors in each direction
 			  gsx, gex, gsy, gey, // GLOBAL limits
 			  hs,				  // Halo size
 			  map);
 
+	// Print actual processor rank, mystart and myend
 	printMap(map);
 
-	u = allocField(map); // this is a pointer!
+	// Allocate memory for local map
+	u = allocField(map); // Local vector (pointer)
+
 	// v = allocField(map);
 	// w = allocField(map);
-	glob = globalField(gsx, gex, gsy, gey); // Global vector
+
+	// Allocate memory for global map
+	glob = allocGlobalMap(gsx, gex, gsy, gey); // Global vector (pointer)
 
 	printf("memory allocated!\n");
 
+	// Fill map with values
 	fillField(u, map);
 	printField(u, map);
+
+	printf("field printed!\n");
+
 	// fillField(v, map);
 	// printField(v, map);
 	// fillField(w, map);
 	// printField(w, map);
 
+	// Fill global field with each processor's values
 	fillGlobalField(u, map, glob);
 
-	printf("field printed!\n");
+	printf("global map field printed!\n");
 
 	// addField(u, v, w, map);
-
-	printField(u, map);
-	printf("field printed!\n");
 
 	free(u);
 	// free(v);
@@ -93,7 +119,6 @@ int main(int argc, char **argv)
 }
 
 // Worksplit function
-
 void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end)
 {
 	// Number of tasks
@@ -129,7 +154,7 @@ void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end
 	}
 }
 
-// we use this function to check the return value of every MPI call
+// Action to check the return value of every MPI call
 void checkr(int r, char *txt)
 {
 	if (r != MPI_SUCCESS)
@@ -139,6 +164,7 @@ void checkr(int r, char *txt)
 	}
 }
 
+// Rank of the actual processor
 int proc()
 {
 	int a, b;
@@ -147,6 +173,7 @@ int proc()
 	return (b);
 }
 
+// Size of total number of processors
 int nproc()
 {
 	int a, b;
@@ -171,7 +198,8 @@ void createMap(int NPX, int NPY,				   // number of processors in each direction
 	worksplit(&(map->sx), &(map->ex), proc(), nproc(), gsx, gex);
 }
 
-double *globalField(int gsx, int gex, int gsy, int gey) // GLOBAL limits
+// Allocate memory for the global field
+double *allocGlobalMap(int gsx, int gex, int gsy, int gey) // GLOBAL limits
 {
 	// allocs memory field
 	// calculate the size of the field
@@ -188,11 +216,13 @@ double *globalField(int gsx, int gex, int gsy, int gey) // GLOBAL limits
 	return aux;
 }
 
+// Print actual processor rank, mystart and myend
 void printMap(MAP *map)
-{ // prints my memory map
+{
 	printf("So, as I'm processor %d, I start with x%d and end with x%d\n", proc(), map->sx, map->ex);
 }
 
+// Allocate memory for local map
 double *allocField(MAP *map)
 {
 	// allocs memory field
@@ -210,6 +240,7 @@ double *allocField(MAP *map)
 	return aux;
 }
 
+// Fill local map with values
 void fillField(double *u, MAP *map)
 {
 	// each processor fill its part of the field
@@ -222,6 +253,7 @@ void fillField(double *u, MAP *map)
 	}
 }
 
+// Fill global field with each processor's values
 void fillGlobalField(double *u, MAP *map, double *glob)
 {
 	// each processor fill its part of the global field
@@ -261,6 +293,7 @@ void fillGlobalField(double *u, MAP *map, double *glob)
 	}
 }
 
+// Print local map values
 void printField(double *u, MAP *map)
 {
 	// each processor prints its part of the field
@@ -273,6 +306,7 @@ void printField(double *u, MAP *map)
 		printf("\n");
 	}
 }
+
 // u=v+w
 void addField(double *u, double *v, double *w, MAP *map)
 {
