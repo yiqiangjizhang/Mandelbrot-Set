@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 	// w = allocField(map);
 	glob = globalField(gsx, gex, gsy, gey); // Global vector
 
-	printf("memory allocated!\n");
+	//printf("memory allocated!\n");
 
 	fillField(u, map);
 	printField(u, map);
@@ -80,8 +80,8 @@ int main(int argc, char **argv)
 
 	// addField(u, v, w, map);
 
-	printField(u, map);
-	printf("field printed!\n");
+	// printField(u, map);
+	// printf("field printed!\n");
 
 	free(u);
 	// free(v);
@@ -227,38 +227,52 @@ void fillGlobalField(double *u, MAP *map, double *glob)
 	// each processor fill its part of the global field
 	int r;		   // for error checking
 	int t = 0;	   // tag, allows to identify messages
+	int t1 = 1;
 	MPI_Status st; // check tag
+	int vr[4];
+	int vs[4];
+	double prueba[100];
+	printf("%d dice hasta aqui llegué\n", proc());
 
-	if (proc() == 0)
-	{
-		printf("global values\n");
-		for (int j = map->sy; j <= (map->ey); j++)
-		{
-			for (int i = map->sx; i <= (map->ex); i++)
-			{
-				GLOB(i, j) = U(i, j);
-				printf("%lf ", GLOB(i, j));
-			}
+	if(proc() == 0) {
+			printf("\nGlobal values \n");
+			for (int j = map->sy; j <= (map->ey); j++) {
+					for (int i = map->sx; i <= (map->ex); i++)
+					{
+							GLOB(i, j) = U(i, j);
+							printf("%lf ", GLOB(i, j));
+					}
 			printf("\n");
-		}
+			}
 
-		for (int i = 1; i <= (nproc() - 1); i++)
-		{
-			r = MPI_Recv(&vr, (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, proc(), t, MPI_COMM_WORLD, &st);
-			checkr(r, "receive1");
-			r = MPI_Recv(&vr, (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, proc(), t, MPI_COMM_WORLD, &st);
-			checkr(r, "receive1");
+			for (int i = 1; i <= (nproc() - 1); i++) {
+		  		r = MPI_Recv(&vr, 4, MPI_INT, i, t, MPI_COMM_WORLD, &st);
+		  		checkr(r, "receive_index");
+					printf("debug: %d %d %d %d %d \n",proc(),vr[0],vr[1],vr[2],vr[3]);
+					r = MPI_Recv(&prueba, (vr[1] - vr[0] + 1) * (vr[3] - vr[2] + 1), MPI_DOUBLE, i, t1, MPI_COMM_WORLD, &st);
+		  		checkr(r, "receive_data");
+					printf("\n%lf %lf %lf \n",prueba[1],prueba[2],prueba[3]);
+		  }
 
-			// el for este aqui dentro
-		}
 	}
-	else
-	{
-		r = MPI_Ssend(&(u + map->hs), (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, 0 /*destination*/, t, MPI_COMM_WORLD);
-		r = MPI_Ssend(&(u + map->hs), (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, 0 /*destination*/, t, MPI_COMM_WORLD);
-		checkr(r, "send1");
-		printf("t'has equivocat noi. 0 kelvin. \n");
+	else {
+		printf("\n%d values\n",proc() );
+
+		vs[0] = map->sx;
+	  vs[1] = map->ex;
+	  vs[2] = map->sy;
+	  vs[3] = map->ey;
+
+	  r = MPI_Ssend(&vs, 4, MPI_INT, 0, t, MPI_COMM_WORLD);
+	  checkr(r, "send_index");
+	  printf("debug: %d ha enviado datos \n",proc());
+		// r = MPI_Ssend(proc(), (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, 0 , t1, MPI_COMM_WORLD);
+		double ah = 1.0;
+		r = MPI_Ssend(ah, 1, MPI_DOUBLE, 0 , t1, MPI_COMM_WORLD);
+		checkr(r, "send_data");
 	}
+
+
 }
 
 void printField(double *u, MAP *map)
