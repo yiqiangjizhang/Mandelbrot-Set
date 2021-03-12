@@ -225,6 +225,7 @@ void fillField(double *u, MAP *map)
 void fillGlobalField(double *u, MAP *map, double *glob)
 {
 	// each processor fill its part of the global field
+	int r;		   // for error checking
 	int t = 0;	   // tag, allows to identify messages
 	MPI_Status st; // check tag
 
@@ -241,12 +242,20 @@ void fillGlobalField(double *u, MAP *map, double *glob)
 			printf("\n");
 		}
 
-		r = MPI_Recv(&vr, (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, proc(), t, MPI_COMM_WORLD, &st);
-		checkr(r, "receive1");
+		for (int i = 1; i <= (nproc() - 1); i++)
+		{
+			r = MPI_Recv(&vr, (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, proc(), t, MPI_COMM_WORLD, &st);
+			checkr(r, "receive1");
+			r = MPI_Recv(&vr, (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, proc(), t, MPI_COMM_WORLD, &st);
+			checkr(r, "receive1");
+
+			// el for este aqui dentro
+		}
 	}
 	else
 	{
-		r = MPI_Ssend(&vs, (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, 0 /*destination*/, t, MPI_COMM_WORLD);
+		r = MPI_Ssend(&(u + map->hs), (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, 0 /*destination*/, t, MPI_COMM_WORLD);
+		r = MPI_Ssend(&(u + map->hs), (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, 0 /*destination*/, t, MPI_COMM_WORLD);
 		checkr(r, "send1");
 		printf("t'has equivocat noi. 0 kelvin. \n");
 	}
