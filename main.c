@@ -283,7 +283,7 @@ void fillGlobalField(double *u, MAP *map, double *glob)
 			int vr2[4];
 			r = MPI_Recv((u + map->hs), (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, i, t1, MPI_COMM_WORLD, &st);
 			checkr(r, "receive1");
-			r = MPI_Recv(vr2, 4, MPI_INT, i, t2, MPI_COMM_WORLD, &st);
+			r = MPI_Recv(&vr2[0], 4, MPI_INT, i, t2, MPI_COMM_WORLD, &st);
 			checkr(r, "receive2");
 
 			printf("he rebut %lf %lf \n", *(u + map->hs), *(u + map->hs + 1));
@@ -301,16 +301,16 @@ void fillGlobalField(double *u, MAP *map, double *glob)
 	}
 	else
 	{
-		printf("no soc 0");
+		printf("no soc 0\n");
 		int vs[4];
 		vs[0] = map->sx;
 		vs[1] = map->ex;
 		vs[2] = map->sy;
 		vs[3] = map->ey;
 		printf("he enviat %lf %lf \n", U(3, 1), U(4, 1));
-		r = MPI_Ssend((u + map->hs), (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, 0 /*destination*/, t1, MPI_COMM_WORLD);
+		r = MPI_Send((u + map->hs), (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, 0 /*destination*/, t1, MPI_COMM_WORLD);
 		checkr(r, "send1");
-		r = MPI_Ssend(vs, 4, MPI_INT, 0 /*destination*/, t2, MPI_COMM_WORLD);
+		r = MPI_Send(&vs[0], 4, MPI_INT, 0 /*destination*/, t2, MPI_COMM_WORLD);
 		checkr(r, "send2");
 		printf("t'has equivocat noi. 0 kelvin. \n");
 	}
