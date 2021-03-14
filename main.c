@@ -281,12 +281,12 @@ void fillGlobalField(double *u, MAP *map, double *glob)
 		{
 			double vr1[(map->ex - map->sx + 1) * (map->ey - map->sy + 1)];
 			int vr2[4];
-			r = MPI_Recv((u + map->hs), (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, i, t1, MPI_COMM_WORLD, &st);
+			r = MPI_Recv(vr1, (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, i, t1, MPI_COMM_WORLD, &st);
 			checkr(r, "receive1");
-			r = MPI_Recv(vr2, 4, MPI_INT, i, t2, MPI_COMM_WORLD, &st);
-			checkr(r, "receive2");
+			// r = MPI_Recv(vr2, 4, MPI_INT, i, t2, MPI_COMM_WORLD, &st);
+			// checkr(r, "receive2");
 
-			printf("he rebut %lf %lf \n", *(u + map->hs), *(u + map->hs + 1));
+			printf("he rebut %lf %lf \n", *(vr1 + 1), *(vr1 + 2));
 
 			// for (int j2 = vr2[2]; j2 <= vr2[3]; j2++)
 			// {
@@ -302,17 +302,38 @@ void fillGlobalField(double *u, MAP *map, double *glob)
 	else
 	{
 		printf("no soc 0");
-		int vs[4];
-		vs[0] = map->sx;
-		vs[1] = map->ex;
-		vs[2] = map->sy;
-		vs[3] = map->ey;
-		printf("he enviat %lf %lf \n", U(3, 1), U(4, 1));
-		r = MPI_Ssend((u + map->hs), (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, 0 /*destination*/, t1, MPI_COMM_WORLD);
+		// double *vs1; // local values array
+		// vs1 = (double *)malloc(sizeof(double) * (map->ex - map->sx + 1) * (map->ey - map->sy + 1));
+
+		// //if memory cannot be allocated
+		// if (vs1 == NULL)
+		// {
+		// 	printf("Error! Memory not allocated.\n");
+		// 	exit(-1);
+		// }
+
+		// printf("envio aquests valors\n");
+
+		// for (int j = map->sy; j <= (map->ey); j++)
+		// {
+		// 	for (int i = map->sx; i <= (map->ex); i++)
+		// 	{
+		// 		*(vs1 + i) = U(i, j);
+		// 	}
+		// }
+		// printf("%lf %lf \n", *(vs1 ), *(vs1 + 1));
+
+		// int vs2[4]; // local index array
+		// vs2[0] = map->sx;
+		// vs2[1] = map->ex;
+		// vs2[2] = map->sy;
+		// vs2[3] = map->ey;
+
+		r = MPI_Ssend(&u, (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, 0 /*destination*/, t1, MPI_COMM_WORLD);
 		checkr(r, "send1");
-		r = MPI_Ssend(vs, 4, MPI_INT, 0 /*destination*/, t2, MPI_COMM_WORLD);
-		checkr(r, "send2");
-		printf("t'has equivocat noi. 0 kelvin. \n");
+		// r = MPI_Ssend(vs2, 4, MPI_INT, 0 /*destination*/, t2, MPI_COMM_WORLD);
+		// checkr(r, "send2");
+		printf("soc 1 i he acabat. \n");
 	}
 }
 
