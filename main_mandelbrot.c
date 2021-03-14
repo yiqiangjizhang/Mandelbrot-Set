@@ -33,15 +33,16 @@ int nproc();																			// Size of total number processors
 void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end);		// Worksplit action
 void createMap(int NPX, int NPY, int gsx, int gex, int gsy, int gey, int hs, MAP *map); // Each processor create its own local map
 void printMap(MAP *map);																// Print actual processor rank, mystart and myend
-double *allocField(MAP *map);															// Allocate memory for local map
-double *allocGlobalField(int gsx, int gex, int gsy, int gey);							// Allocate memory for the global field
-void fillField(double *u, MAP *m);														// Fill local map with values
+double *allocField(MAP *map, int y_div);												// Allocate memory for local map
+double *allocGlobalField(int gsx, int gex, int gsy, int gey, int y_div);				// Allocate memory for the global field
+void fillField(double *u, MAP *map);													// Fill local map with values
 void printField(double *u, MAP *map);													// Print local map values
 void fillGlobalField(double *u, MAP *map, double *glob, int gsx);						// Fill global map with values
 void printGlobalField(double *glob, int gsx, int gex, int gsy, int gey);				// Print global field values
 double distance(double x, double y);
 
 void compute(double x, double y, double c_real, double c_imag, double *ans_x, double *ans_y);
+
 void mandelbrot(double *px, double *py, int iter, double c_real, double c_imag);
 
 // Main function
@@ -52,7 +53,7 @@ int main(int argc, char **argv)
 	int NPX = 10; // Number of processors in X axis
 	int NPY = 1;  // Number of processors in Y axis
 	int gsx = 1;  // Global X start index
-	int gex = 50; // Global X end index
+	int gex = 30; // Global X end index
 	int gsy = 1;  // Global Y start index
 	int gey = 1;  // Global Y end index
 	int hs = 0;	  // Halo size
@@ -67,8 +68,8 @@ int main(int argc, char **argv)
 
 	// Complex number
 	double r_min, r_max;
-	double y_min = -1, y_max = 1, y_div = 2000;
-	double x_min = -2, x_max = 1, x_div = 3000;
+	double y_min = -1, y_max = 1, y_div = 20;
+	double x_min = -2, x_max = 1, x_div = 30;
 
 	int iter = 50; // maximum iterations
 	double px, py, c_real = x_min, c_imag = y_min;
@@ -84,10 +85,10 @@ int main(int argc, char **argv)
 			  map);
 
 	// Allocate memory for local map
-	// u = allocField(map); // Local vector (pointer)
+	u = allocField(map, y_div); // Local vector (pointer)
 
 	// Allocate memory for global map
-	// glob = allocGlobalField(gsx, gex, gsy, gey); // Global vector (pointer)
+	glob = allocGlobalField(gsx, gex, gsy, gey, y_div); // Global vector (pointer)
 
 	// // Fill map with values
 	// fillField(u, map);
@@ -133,8 +134,8 @@ int main(int argc, char **argv)
 	// }
 
 	// Free allocated memory
-	// free(u);
-	// free(glob);
+	free(u);
+	free(glob);
 
 	// End MPI
 	MPI_Finalize();
@@ -236,12 +237,12 @@ void printMap(MAP *map)
 
 // Memory allocation of each field (local limits)
 
-double *allocField(MAP *map)
+double *allocField(MAP *map, int y_div)
 {
 
 	double *aux;
 	// printf("debug: %d %d %d %d %d\n", map->sx, map->ex, map->sy, map->ey, map->hs);
-	aux = (double *)malloc(sizeof(double) * (map->ex - map->sx + 1 + 2 * map->hs) * (map->ey - map->sy + 1 + 2 * map->hs));
+	aux = (double *)malloc(sizeof(double) * (map->ex - map->sx + 1 + 2 * map->hs) * (y_div + 2 * map->hs));
 
 	//if memory cannot be allocated
 	if (aux == NULL)
@@ -254,13 +255,13 @@ double *allocField(MAP *map)
 
 // Allocate memory for the global field (global limits)
 
-double *allocGlobalField(int gsx, int gex, int gsy, int gey)
+double *allocGlobalField(int gsx, int gex, int gsy, int gey, int y_div)
 {
 	// allocs memory field
 	// calculate the size of the field
 	double *aux;
 	// printf("debug: %d %d %d %d %d\n", map->sx, map->ex, map->sy, map->ey, map->hs);
-	aux = (double *)malloc(sizeof(double) * (gex - gsx + 1) * (gey - gsy + 1));
+	aux = (double *)malloc(sizeof(double) * (gex - gsx + 1) * (y_div));
 
 	//if memory cannot be allocated
 	if (aux == NULL)
@@ -273,14 +274,15 @@ double *allocGlobalField(int gsx, int gex, int gsy, int gey)
 
 // Fill local map with values
 
-void fillField(double *u, MAP *map)
+void fillField(double *u, MAP *map, )
 {
+
 	// each processor fill its part of the field
-	for (int j = map->sy; j <= (map->ey); j++)
+	for (int j = map->sy; j <= (map->ey); j = j + 1)
 	{
-		for (int i = map->sx; i <= (map->ex); i++)
+		for (int i = map->sx; i <= (map->ex); i = i + 1)
 		{
-			U(i, j) = (i + j / 10.0);
+			U(i, j) = ;
 		}
 	}
 }
