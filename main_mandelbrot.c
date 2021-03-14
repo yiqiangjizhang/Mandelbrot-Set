@@ -1,16 +1,12 @@
 /* Mandelbrot set
-
 Date: 15/03/2021
 Author/s: Group 1
 Subject: High Performance Computing for Aerospace Engineering
 Professor: Manel Soria & Arnau Miro
-
-
 // Problem statement
 -------------------------------------------------------------------------
 Plot Mandelbrot set using MPI
 -------------------------------------------------------------------------
-
 */
 
 // Libraries
@@ -71,10 +67,11 @@ int main(int argc, char **argv)
 
 	// Complex number
 	double r_min, r_max;
-	double i_min = -1, i_max = 1, i_div = 10;
+	double y_min = -1, y_max = 1, y_div = 2000;
+	double x_min = -2, x_max = 1, x_div = 3000;
 
-	int iter = 255; // maximum iterations
-	double px, py, c_real = -1, c_imag = i_min;
+	int iter = 50; // maximum iterations
+	double px, py, c_real = x_min, c_imag = y_min;
 
 	// Start MPI
 	r = MPI_Init(&argc, &argv);
@@ -97,16 +94,30 @@ int main(int argc, char **argv)
 
 	// printf("Local map filled successfully! \n\n");
 
-	double interval = (i_max - i_min) / i_div;
+	double interval_x = (x_max - x_min) / x_div;
+	double interval_y = (y_max - y_min) / y_div;
 
-	for (int i = 1; i <= i_div; i++)
+	for (int i = 1; i <= x_div; i++)
 	{
-		mandelbrot(&px, &py, iter, c_real, c_imag);
-		printf("px = %lf and py = % lf \n", px, py);
-		c_imag = c_imag + interval;
+		for (int j = 1; j <= y_div; j++)
+		{
+			// printf("c_real = %lf c_imag = %lf \n", c_real, c_imag);
+			mandelbrot(&px, &py, iter, c_real, c_imag);
+
+			if ((px != -2) && (py != -2))
+			{
+				//printf("px = %lf and py = % lf \n", px, py);
+				printf("%lf %lf \n", px, py);
+			}
+			c_imag = c_imag + interval_y;
+			// printf("c_imag = %lf \n", c_imag);
+		}
+		c_imag = y_min;
+		c_real = c_real + interval_x;
+		// printf("c_real = %lf \n", *p_c_real);
 	}
 
-	printf("\nMandelbrot printed! \n\n");
+	// printf("\nMandelbrot printed! \n\n");
 
 	// Fill global field with each processor's values
 	// fillGlobalField(u, map, glob, gsx);
