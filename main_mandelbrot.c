@@ -201,7 +201,6 @@ void createMap(int NPX, int NPY,				   // number of processors in each direction
 	map->hs = hs;
 	map->sy = gsy;
 	map->ey = gey;
-
 	worksplit(&(map->sx), &(map->ex), proc(), nproc(), gsx, gex);
 }
 
