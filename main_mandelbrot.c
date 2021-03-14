@@ -43,6 +43,10 @@ void fillField(double *u, MAP *m);														// Fill local map with values
 void printField(double *u, MAP *map);													// Print local map values
 void fillGlobalField(double *u, MAP *map, double *glob, int gsx);						// Fill global map with values
 void printGlobalField(double *glob, int gsx, int gex, int gsy, int gey);				// Print global field values
+double distance(double x, double y);
+
+void compute(double x, double y, double c_real, double c_imag, double *ans_x, double *ans_y);
+void mandelbrot(double *px, double *py, int iter, double c_real, double c_imag);
 
 // Main function
 int main(int argc, char **argv)
@@ -65,6 +69,13 @@ int main(int argc, char **argv)
 	MAP map_;
 	MAP *map = &map_;
 
+	// Complex number
+	double r_min, r_max;
+	double i_min = -1, i_max = 1, i_div = 10;
+
+	int iter = 255; // maximum iterations
+	double px, py, c_real = -1, c_imag = i_min;
+
 	// Start MPI
 	r = MPI_Init(&argc, &argv);
 	checkr(r, "Initiate");
@@ -75,43 +86,44 @@ int main(int argc, char **argv)
 			  hs,				  // Halo size
 			  map);
 
-	// Print local processor rank, mystart and myend
-	printMap(map);
-
 	// Allocate memory for local map
-	u = allocField(map); // Local vector (pointer)
+	// u = allocField(map); // Local vector (pointer)
 
 	// Allocate memory for global map
-	glob = allocGlobalField(gsx, gex, gsy, gey); // Global vector (pointer)
+	// glob = allocGlobalField(gsx, gex, gsy, gey); // Global vector (pointer)
 
-	printf("\nMemory allocated successfully! \n\n");
+	// // Fill map with values
+	// fillField(u, map);
 
-	// Fill map with values
-	fillField(u, map);
+	// printf("Local map filled successfully! \n\n");
 
-	printf("Local map filled successfully! \n\n");
+	double interval = (i_max - i_min) / i_div;
 
-	// Print local map
-	printField(u, map);
+	for (int i = 1; i <= i_div; i++)
+	{
+		mandelbrot(&px, &py, iter, c_real, c_imag);
+		printf("px = %lf and py = % lf \n", px, py);
+		c_imag = c_imag + interval;
+	}
 
-	printf("\nLocal map printed successfully! \n\n");
+	printf("\nMandelbrot printed! \n\n");
 
 	// Fill global field with each processor's values
-	fillGlobalField(u, map, glob, gsx);
+	// fillGlobalField(u, map, glob, gsx);
 
-	printf("Global map filled successfully! \n\n");
+	// printf("Global map filled successfully! \n\n");
 
 	// Print global map
 
-	if (proc() == 0)
-	{
-		printGlobalField(glob, gsx, gex, gsy, gey);
-		printf("Global map printed successfully! \n\n");
-	}
+	// if (proc() == 0)
+	// {
+	// 	printGlobalField(glob, gsx, gex, gsy, gey);
+	// 	printf("Global map printed successfully! \n\n");
+	// }
 
 	// Free allocated memory
-	free(u);
-	free(glob);
+	// free(u);
+	// free(glob);
 
 	// End MPI
 	MPI_Finalize();
@@ -365,5 +377,54 @@ void printGlobalField(double *glob, int gsx, int gex, int gsy, int gey)
 			printf("%lf ", GLOB(i));
 		}
 		printf("\n");
+	}
+}
+
+//
+
+double distance(double x, double y)
+{
+	/* Computes the square of the distance to the origin.
+		Receives: doubles x and y
+		Sends: x^2+y^2
+	*/
+	return (x * x + y * y);
+}
+
+void compute(double x, double y, double c_real, double c_imag, double *ans_x, double *ans_y)
+{
+	// Calculates the n-iteration
+	*ans_x = x * x - y * y + c_real;
+	*ans_y = 2 * x * y + c_imag;
+}
+
+void mandelbrot(double *px, double *py, int iter, double c_real, double c_imag)
+{
+	int counter = 0;
+	double x = 0, y = 0;
+	int imlittle = 1;
+	double ans_x;
+	double ans_y;
+	while ((counter < iter) && (imlittle == 1))
+	{
+		compute(x, y, c_real, c_imag, &ans_x, &ans_y);
+
+		if (distance(x, y) > 4)
+		{
+			imlittle = 0;
+			*px = -2;
+			*py = -2;
+		}
+
+		x = ans_x;
+		y = ans_y;
+
+		counter++;
+	}
+
+	if (imlittle == 1)
+	{
+		*px = c_real;
+		*py = c_imag;
 	}
 }
