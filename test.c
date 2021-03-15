@@ -20,18 +20,85 @@ void checkr(int r, char *txt);
 int quants();
 int whoami();
 double *linspace(double start, double end, int n);
+void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end);
 
 // Main
 int main(int argc, char **argv)
 {
     // MPI variables
     int r; // Error checking
+
+    // X axis
     double *u;
-    u = linspace(1, 10, 10);
+    // Y axis
+    double *v;
+
+    // Variables
+    int start = 0;
+    int end = 10;
+    int mystart;
+    int myend;
+    int nproc = 2;
+
+    // Number of points
+    int n = 10;
+    double sx = -2;
+    double ex = 2;
+    double sy = -1.5;
+    double ey = 1.5;
+
+    // Initate MPI
+    r = MPI_Init(&argc, &argv);
+    checkr(r, "init");
+
+    u = (double *)malloc(sizeof(double) * n);
+    v = (double *)malloc(sizeof(double) * n);
+
+    u = linspace(sx, ex, n);
+    v = linspace(sy, ey, n);
+
     for (int i = 0; i < 10; i++)
     {
         printf("%f\n", *(u + i));
     }
+
+    for (int i = 0; i < 10; i++)
+    {
+        printf("%f\n", *(v + i));
+    }
+
+    // if (whoami() == 0)
+    // {
+    // worksplit(&mystart, &myend, whoami(), quants(), start, end);
+
+    // // for (int i = 0; i < n; i++)
+    // // {
+    // // printf("%f\n", *(u + i));
+    // // }
+    // }
+    // else
+    // {
+    // // worksplit(&mystart, &myend, whoami(), quants(), start - 1, end);
+    // // for (int i = 0; i < n; i++)
+    // // {
+    // // printf("%f\n", *(u + i));
+    // // }
+    // }
+
+    // // Loop through all the processors
+    // for (int proc = 0; (proc <= nproc - 1) && (proc < end - start + 1); proc++)
+    // {
+    // worksplit(&mystart, &myend, proc, nproc, start, end);
+    // }
+    // for (int proc = end - start + 1; proc <= nproc - 1; proc++)
+    // {
+    // printf("So, as I'm processor %d, all tasks have been asigned and I can idle \n", proc);
+    // }
+
+    free(u);
+    free(v);
+    MPI_Finalize();
+    exit(0);
     return 0;
 }
 
@@ -96,6 +163,8 @@ void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end
         *mystart = start + proc * interval;
         *myend = *mystart + (interval - 1);
     }
+    // Print off a hello world message
+    printf("So, as I'm processor %d, I start with %d and end with %d\n", proc, *mystart, *myend);
 }
 
 // Create vector
