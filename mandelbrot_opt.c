@@ -280,7 +280,7 @@ int fillField(double *u, MAP *map, double x_div, double y_div, int proc)
 {
 	double y_min = -1, y_max = 1;
 	double x_min = -2, x_max = 0.5;
-	int iter = 50; // maximum iterations
+	int iter = 250; // maximum iterations
 	double interval_x = x_div/(map->ex-map->sx+1);
 	double interval_y = (y_max - y_min) / y_div;
 	double px, py;
