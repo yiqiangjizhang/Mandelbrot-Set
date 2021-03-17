@@ -16,9 +16,6 @@ Plot Mandelbrot set using MPI using 1D array
 #include <math.h>	// Math library
 #include "mpi.h"	// MPI library
 
-// Macro to access field GLOB
-#define GLOB(x) *(glob + (x - gsx))
-
 // This structure contains all the data to access a distributed 2d array
 typedef struct Maps
 {
@@ -36,29 +33,26 @@ void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end
 void createMap(int gsx, int gex, int hs, MAP *map);											  // Each processor create its own local map
 void printMap(MAP *map);																	  // Print actual processor rank, mystart and myend
 double *allocField(MAP *map, int y_div);													  // Allocate memory for local map
-double *allocGlobalField(int gsx, int gex, int y_div);										  // Allocate memory for the global field
-int fillField(double *u, MAP *map, double x_div, double y_div, int proc);					  // Fill local map with values
-void fillGlobalField(double *u, MAP *map, double *glob, int gsx, int counter);				  // Fill global map with values
-void printGlobalField(double *glob, int gsx, int gex);										  // Print global field values
+void fillField(double *u, MAP *map, double x_div, double y_div, int proc);					  // Fill local map with values
 double distance(double x, double y);														  // Squared distance between points (x,y) and origin (0,0)
 void compute(double x, double y, double c_real, double c_imag, double *ans_x, double *ans_y); // Return the n-iteration of the Mandelbrot expression
-void mandelbrot(double *px, double *py, int iter, double c_real, double c_imag);			  // Compute the set of numbers that are inside Mandelbrot's set
+int mandelbrot(int iter, double c_real, double c_imag);			  // Compute the set of numbers that are inside Mandelbrot's set
 
 // Main function
 int main(int argc, char **argv)
 {
 
 	// Declare variables
-	int gsx = 1;		 // Global X start index
-	int gex = 1000;		 // Global X end index
-	int hs = 0;			 // Halo size
+	int gsx = 1;		 		 // Global X start index
+	int gex = 1000;		 	 // Global X end index
+	int hs = 0;			 		 // Halo size
 	double y_div = 1000; // Number of divisions in Y-axis
 
 	// MPI variables
 	int r; // Error checking
 
 	// Data variables
-	double *u, *glob; // Array of local and global map values
+	double *u; // Array of local map values
 	MAP map_;		  // Map structure
 	MAP *map = &map_; // Map pointer
 
@@ -67,9 +61,7 @@ int main(int argc, char **argv)
 	checkr(r, "Initiate");
 
 	// Create local map
-	createMap(gsx, gex, // GLOBAL limits
-			  hs,		// Halo size
-			  map);
+	createMap(gsx, gex, hs, map);
 
 	// printMap(map);
 
@@ -78,38 +70,20 @@ int main(int argc, char **argv)
 
 	// Number of divisions in the X-axis
 	double x_div = (x_max - x_min) / (gex - gsx + 1) * (map->ex - map->sx + 1);
-	// printf("xdiv %lf\n",x_div);
 
 	// Allocate memory for local map
 	u = allocField(map, y_div); // Local vector (pointer)
-
-	// Allocate memory for global map
-	glob = allocGlobalField(gsx, gex, y_div); // Global vector (pointer)
 
 	// Count the amount of numbers inside Mandelbrot's set for each processor
 	int counter;
 
 	// Fill map with values and return the amount of numbers inside Mandelbrot's set for each processor
-	counter = fillField(u, map, x_div, y_div, proc());
+	fillField(u, map, x_div, y_div, proc());
 
 	// printf("\nMandelbrot printed! \n\n");
 
-	// Fill global field with each processor's values
-	fillGlobalField(u, map, glob, gsx, counter);
-
-	// printf("Global map filled successfully! \n\n");
-
-	// Print global map
-
-	// if (proc() == 0)
-	// {
-	// printGlobalField(glob, gsx, gex);
-	// printf("Global map printed successfully! \n\n");
-	// }
-
 	// Free allocated memory
 	free(u);
-	free(glob);
 
 	// End MPI
 	MPI_Finalize();
@@ -118,7 +92,7 @@ int main(int argc, char **argv)
 	exit(0);
 }
 
-// End Of File
+// End of File
 /* -------------------------------------------------------------------------- */
 
 // Check the return value of every MPI call
@@ -185,9 +159,7 @@ void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end
 }
 
 // Each processor creates its map, filling in its values for sx,ex,sy,ey using worksplit
-void createMap(int gsx, int gex, // GLOBAL limits
-			   int hs,			 // Halo size
-			   MAP *map)
+void createMap(int gsx, int gex, int hs, MAP *map)
 {
 	map->hs = hs;
 	worksplit(&(map->sx), &(map->ex), proc(), nproc(), gsx, gex);
@@ -202,7 +174,6 @@ void printMap(MAP *map)
 // Memory allocation of each field (local limits)
 double *allocField(MAP *map, int y_div)
 {
-
 	double *aux;
 	// printf("debug: %d %d %d %d %d\n", map->sx, map->ex, map->sy, map->ey, map->hs);
 	aux = (double *)malloc(sizeof(double) * (2 * (map->ex - map->sx + 1) + 2 * map->hs) * (y_div + 2 * map->hs));
@@ -216,33 +187,15 @@ double *allocField(MAP *map, int y_div)
 	return aux;
 }
 
-// Allocate memory for the global field (global limits)
-double *allocGlobalField(int gsx, int gex, int y_div)
-{
-	// allocs memory field
-	// calculate the size of the field
-	double *aux;
-	// printf("debug: %d %d %d %d %d\n", map->sx, map->ex, map->sy, map->ey, map->hs);
-	aux = (double *)malloc(sizeof(double) * 2 * (gex - gsx + 1) * (y_div));
-
-	//if memory cannot be allocated
-	if (aux == NULL)
-	{
-		printf("Error! Memory not allocated.\n");
-		exit(-1);
-	}
-	return aux;
-}
-
 // Fill local map with values
-int fillField(double *u, MAP *map, double x_div, double y_div, int proc)
+void fillField(double *u, MAP *map, double x_div, double y_div, int proc)
 {
 	double y_min = -1, y_max = 1;	// Limits of the area of study for the real part
 	double x_min = -2, x_max = 0.5; // Limits of the area of study for the imaginary part
 	int iter = 250;					// maximum iterations
 	double interval_x = x_div / (map->ex - map->sx + 1);
 	double interval_y = (y_max - y_min) / y_div;
-	double px, py;
+	int convergence;
 	double c_real = -2 + x_div * proc;
 	double c_imag = y_min;
 	int counter = 0;
@@ -252,16 +205,15 @@ int fillField(double *u, MAP *map, double x_div, double y_div, int proc)
 		for (int j = 1; j <= y_div; j++)
 		{
 			// printf("c_real = %lf c_imag = %lf \n", c_real, c_imag);
-			mandelbrot(&px, &py, iter, c_real, c_imag);
+			convergence = mandelbrot(iter, c_real, c_imag);
 
 			// If the point does not belong to the Mandelbrot set
-			if ((px != -2) && (py != -2))
+			if (convergence == 1)
 			{
 				// printf("%lf %lf \n", px, py);
-				*(u + counter) = px;
-				*(u + counter + 1) = py;
-				// printf("px = %lf and ",*(u+counter));
-				// printf("py = %lf\n",*(u+counter+1));
+				*(u + counter) = c_real;
+				*(u + counter + 1) = c_imag;
+				printf("%lf %lf \n",*(u+counter),*(u+counter+1));
 				counter = counter + 2;
 			}
 			c_imag = c_imag + interval_y;
@@ -271,101 +223,6 @@ int fillField(double *u, MAP *map, double x_div, double y_div, int proc)
 		c_real = c_real + interval_x;
 		// printf("c_real = %lf \n", *p_c_real);
 	}
-	return counter;
-}
-
-// Fill global field with each processor's values
-void fillGlobalField(double *u, MAP *map, double *glob, int gsx, int counter)
-{
-	// each processor fill its part of the global field
-	int r;				// for error checking
-	int t1 = 0, t2 = 1; // tag, allows to identify messages
-	MPI_Status st;		// check tag
-	// printf("he empezado y counter = %d\n",counter);
-	if (proc() == 0)
-	{
-		// printf("Global values\n");
-
-		for (int i = 0; i < counter; i++)
-		{
-			*(glob + i) = *(u + i);
-			// printf("Re/Im = %lf\n",*(glob+i));
-			printf("%lf ", *(glob + i));
-			if (i % 2 != 0)
-				printf("\n");
-		}
-		// printf("he acabado y counter = %d\n",counter);
-		for (int i = 1; i <= (nproc() - 1); i++)
-		{
-			// Create a receive vector (sx, ex, sy, ey)
-			int counter2;
-			r = MPI_Recv(&counter2, 1, MPI_INT, i, t2, MPI_COMM_WORLD, &st);
-			checkr(r, "receive");
-			// allocs memory of the receiving vector
-			// printf("counter = %d\n",counter);
-			// printf("counter2 = %d\n",counter2);
-			double *vr2;
-			vr2 = (double *)malloc(sizeof(double) * counter2);
-
-			//if memory cannot be allocated
-			if (vr2 == NULL)
-			{
-				printf("Error! Memory not allocated.\n");
-				exit(-1);
-			}
-
-			r = MPI_Recv(vr2, counter2, MPI_DOUBLE, i, t1, MPI_COMM_WORLD, &st);
-			checkr(r, "receive2");
-
-			int counter3 = 0;
-
-			for (int i = (counter); i < counter + counter2; i++)
-			{
-				*(glob + i) = *(vr2 + counter3);
-				//printf("prueba vr %lf\n",*(vr2+counter3));
-				// printf("reim = %lf\n",*(glob+i));
-				printf("%lf ", *(glob + i));
-				if (counter3 % 2 != 0)
-					printf("\n");
-				counter3++;
-			}
-			counter = counter + counter2;
-
-			// printf("he rebut %lf %lf \n", *(vr2), *(vr2 + 1));
-
-			free(vr2);
-		}
-	}
-
-	// proc != 0
-
-	else
-	{
-
-		for (int i = 0; i <= counter; i++)
-		{
-			*(glob + i) = *(u + i);
-			//printf("reim = %lf\n",*(glob+i));
-		}
-
-		// printf("he enviat %lf %lf \n", U(3, 1), U(4, 1));
-		// printf("he enviat %lf %lf \n", *(u), *(u + 1));
-		r = MPI_Send(&counter, 1, MPI_INT, 0 /*destination*/, t2, MPI_COMM_WORLD);
-		checkr(r, "send2");
-		r = MPI_Send(glob, counter, MPI_DOUBLE, 0 /*destination*/, t1, MPI_COMM_WORLD);
-		checkr(r, "send1");
-	}
-}
-
-// Print global field values
-void printGlobalField(double *glob, int gsx, int gex)
-{
-
-	for (int i = gsx; i <= gex; i++)
-	{
-		printf("%lf ", GLOB(i));
-	}
-	printf("\n");
 }
 
 // Squared distance between points (x,y) and origin (0,0)
@@ -387,25 +244,21 @@ void compute(double x, double y, double c_real, double c_imag, double *ans_x, do
 }
 
 // Compute the set of numbers that are inside Mandelbrot's set
-void mandelbrot(double *px, double *py, int iter, double c_real, double c_imag)
+int mandelbrot(int iter, double c_real, double c_imag)
 {
 	int counter = 0;
 	double x = 0, y = 0;
-	int convergence = 1;
 	double ans_x;
 	double ans_y;
-	// printf("creal cimag %lf %lf\n",c_real,c_imag);
-	while ((counter < iter) && (convergence != 0))
+	int loc_convergence = 1;
+
+	while ((counter < iter) && (loc_convergence != 0))
 	{
 		compute(x, y, c_real, c_imag, &ans_x, &ans_y);
 
 		if (distance(x, y) > 4) // The complex number is out of the Mandelbrot set
 		{
-			convergence = 0;
-			// Get rid of the point as they do not belong to the set
-			*px = -2;
-			*py = -2;
-			// printf("F\n");
+			loc_convergence = 0;
 		}
 
 		x = ans_x; // Updates the real part for the next iteration
@@ -413,10 +266,7 @@ void mandelbrot(double *px, double *py, int iter, double c_real, double c_imag)
 
 		counter++;
 	}
-	if (convergence == 1) // The complex number is part of the Mandelbrot set
-	{
-		*px = c_real;
-		*py = c_imag;
-		// printf("creal cimag post process %lf %lf\n",c_real,c_imag);
-	}
+
+	return loc_convergence;
+
 }
