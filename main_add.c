@@ -78,9 +78,8 @@ int main(int argc, char **argv)
 
 	// Allocate memory for local map
 	u = allocField(map); // Local vector (pointer)
-
-	// v = allocField(map);
-	// w = allocField(map);
+	v = allocField(map);
+	w = allocField(map);
 
 	// Allocate memory for global map
 	glob = allocGlobalMap(gsx, gex, gsy, gey); // Global vector (pointer)
@@ -93,24 +92,24 @@ int main(int argc, char **argv)
 
 	printf("field printed!\n");
 
-	// fillField(v, map);
-	// printField(v, map);
-	// fillField(w, map);
-	// printField(w, map);
+	fillField(v, map);
+	printField(v, map);
+	fillField(w, map);
+	printField(w, map);
 
 	// Fill global field with each processor's values
 	fillGlobalField(u, map, glob);
 
 	printf("global map field printed!\n");
 
-	// addField(u, v, w, map);
+	addField(u, v, w, map);
 
-	// printField(u, map);
-	// printf("field printed!\n");
+	printField(u, map);
+	printf("field printed!\n");
 
 	free(u);
-	// free(v);
-	// free(w);
+	free(v);
+	free(w);
 
 	MPI_Finalize();
 
@@ -275,40 +274,34 @@ void fillGlobalField(double *u, MAP *map, double *glob)
 
 		for (int i = 1; i <= (nproc() - 1); i++)
 		{
-			double vr1[(map->ex - map->sx + 1) * (map->ey - map->sy + 1)];
+			double *vr1;
+			vr1 = (double *)malloc(sizeof(double) * (map->ex - map->sx + 1) * (map->ey - map->sy + 1));
+
+			//if memory cannot be allocated
+			if (vr1 == NULL)
+			{
+				printf("Error! Memory not allocated.\n");
+				exit(-1);
+			}
+
 			int vr2[4];
 			r = MPI_Recv((u + map->hs), (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, i, t1, MPI_COMM_WORLD, &st);
 			checkr(r, "receive1");
 			r = MPI_Recv(&vr2[0], 4, MPI_INT, i, t2, MPI_COMM_WORLD, &st);
 			checkr(r, "receive2");
-
-			printf("he rebut %lf %lf \n", *(u + map->hs), *(u + map->hs + 1));
-
-			// for (int j2 = vr2[2]; j2 <= vr2[3]; j2++)
-			// {
-			// 	for (int i2 = vr2[0]; i2 <= vr2[1]; i2++)
-			// 	{
-			// 		GLOB(i, j) = U(i, j);
-			// 		printf("%lf ", GLOB(i, j));
-			// 	}
-			// 	printf("\n");
-			// }
 		}
 	}
 	else
 	{
-		printf("no soc 0\n");
 		int vs[4];
 		vs[0] = map->sx;
 		vs[1] = map->ex;
 		vs[2] = map->sy;
 		vs[3] = map->ey;
-		printf("he enviat %lf %lf \n", U(3, 1), U(4, 1));
 		r = MPI_Send((u + map->hs), (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, 0 /*destination*/, t1, MPI_COMM_WORLD);
 		checkr(r, "send1");
 		r = MPI_Send(&vs[0], 4, MPI_INT, 0 /*destination*/, t2, MPI_COMM_WORLD);
 		checkr(r, "send2");
-		printf("t'has equivocat noi. 0 kelvin. \n");
 	}
 }
 
