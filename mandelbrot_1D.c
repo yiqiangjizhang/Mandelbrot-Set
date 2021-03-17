@@ -254,6 +254,7 @@ int fillField(double *u, MAP *map, double x_div, double y_div, int proc)
 			// printf("c_real = %lf c_imag = %lf \n", c_real, c_imag);
 			mandelbrot(&px, &py, iter, c_real, c_imag);
 
+			// If the point does not belong to the Mandelbrot set
 			if ((px != -2) && (py != -2))
 			{
 				// printf("%lf %lf \n", px, py);
@@ -390,17 +391,18 @@ void mandelbrot(double *px, double *py, int iter, double c_real, double c_imag)
 {
 	int counter = 0;
 	double x = 0, y = 0;
-	int imlittle = 1;
+	int convergence = 1;
 	double ans_x;
 	double ans_y;
 	// printf("creal cimag %lf %lf\n",c_real,c_imag);
-	while ((counter < iter) && (imlittle == 1))
+	while ((counter < iter) && (convergence != 0))
 	{
 		compute(x, y, c_real, c_imag, &ans_x, &ans_y);
 
 		if (distance(x, y) > 4) // The complex number is out of the Mandelbrot set
 		{
-			imlittle = 0;
+			convergence = 0;
+			// Get rid of the point as they do not belong to the set
 			*px = -2;
 			*py = -2;
 			// printf("F\n");
@@ -411,7 +413,7 @@ void mandelbrot(double *px, double *py, int iter, double c_real, double c_imag)
 
 		counter++;
 	}
-	if (imlittle == 1) // The complex number is part of the Mandelbrot set
+	if (convergence == 1) // The complex number is part of the Mandelbrot set
 	{
 		*px = c_real;
 		*py = c_imag;
