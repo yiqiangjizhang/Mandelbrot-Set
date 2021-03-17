@@ -35,9 +35,9 @@ void createMap(int NPX, int NPY, int gsx, int gex, int gsy, int gey, int hs, MAP
 void printMap(MAP *map);																// Print actual processor rank, mystart and myend
 double *allocField(MAP *map, int y_div);												// Allocate memory for local map
 double *allocGlobalField(int gsx, int gex, int gsy, int gey, int y_div);				// Allocate memory for the global field
-int fillField(double *u, MAP *map, double x_div, double y_div, int proc);									// Fill local map with values
+int fillField(double *u, MAP *map, double x_div, double y_div, int proc);				// Fill local map with values
 void printField(double *u, MAP *map);													// Print local map values
-void fillGlobalField(double *u, MAP *map, double *glob, int gsx, int counter);						// Fill global map with values
+void fillGlobalField(double *u, MAP *map, double *glob, int gsx, int counter);			// Fill global map with values
 void printGlobalField(double *glob, int gsx, int gex, int gsy, int gey);				// Print global field values
 double distance(double x, double y);
 
@@ -50,13 +50,13 @@ int main(int argc, char **argv)
 {
 
 	// Declare variables
-	int NPX = 1; 		// Number of processors in X axis
-	int NPY = 1;  	// Number of processors in Y axis
-	int gsx = 1;  	// Global X start index
+	int NPX = 1;	 // Number of processors in X axis
+	int NPY = 1;	 // Number of processors in Y axis
+	int gsx = 1;	 // Global X start index
 	int gex = 10000; // Global X end index
-	int gsy = 1;  	// Global Y start index
-	int gey = 1;  	// Global Y end index
-	int hs = 0;	  	// Halo size
+	int gsy = 1;	 // Global Y start index
+	int gey = 1;	 // Global Y end index
+	int hs = 0;		 // Halo size
 	double y_div = 4000;
 
 	// MPI variables
@@ -77,13 +77,13 @@ int main(int argc, char **argv)
 	// Create local map
 	createMap(NPX, NPY,			  // number of processors in each direction
 			  gsx, gex, gsy, gey, // GLOBAL limits
-			  hs,				  				// Halo size
+			  hs,				  // Halo size
 			  map);
 
 	// printMap(map);
 
 	double x_min = -2, x_max = 0.5;
-	double x_div = (x_max-x_min)/(gex-gsx+1)*(map->ex-map->sx+1);
+	double x_div = (x_max - x_min) / (gex - gsx + 1) * (map->ex - map->sx + 1);
 	// printf("xdiv %lf\n",x_div);
 
 	// Allocate memory for local map
@@ -95,10 +95,9 @@ int main(int argc, char **argv)
 	int counter;
 
 	// // Fill map with values
-	counter = fillField(u, map,x_div,y_div,proc());
+	counter = fillField(u, map, x_div, y_div, proc());
 
 	// printf("Local map filled successfully! \n\n");
-
 
 	// for (int i = 1; i <= x_div; i++)
 	// {
@@ -218,10 +217,9 @@ void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end
 
 // each processor creates its map, filling in its values for sx,ex,sy,ey using worksplit
 
-void createMap(int NPX, int NPY,				   // number of processors in each direction
-			   int gsx, int gex, int gsy, int gey, // GLOBAL limits
-			   int hs,							   // Halo size
-			   MAP *map)
+void createMap( // number of processors in each directionint gsx,int gex, int gsy, int gey, // GLOBAL limits
+	int hs,		// Halo size
+	MAP *map)
 {
 
 	map->hs = hs;
@@ -244,7 +242,7 @@ double *allocField(MAP *map, int y_div)
 
 	double *aux;
 	// printf("debug: %d %d %d %d %d\n", map->sx, map->ex, map->sy, map->ey, map->hs);
-	aux = (double *)malloc(sizeof(double) * (2*(map->ex - map->sx + 1) + 2 * map->hs) * (y_div + 2 * map->hs));
+	aux = (double *)malloc(sizeof(double) * (2 * (map->ex - map->sx + 1) + 2 * map->hs) * (y_div + 2 * map->hs));
 
 	//if memory cannot be allocated
 	if (aux == NULL)
@@ -263,7 +261,7 @@ double *allocGlobalField(int gsx, int gex, int gsy, int gey, int y_div)
 	// calculate the size of the field
 	double *aux;
 	// printf("debug: %d %d %d %d %d\n", map->sx, map->ex, map->sy, map->ey, map->hs);
-	aux = (double *)malloc(sizeof(double) * 2*(gex - gsx + 1) * (y_div));
+	aux = (double *)malloc(sizeof(double) * 2 * (gex - gsx + 1) * (y_div));
 
 	//if memory cannot be allocated
 	if (aux == NULL)
@@ -281,10 +279,10 @@ int fillField(double *u, MAP *map, double x_div, double y_div, int proc)
 	double y_min = -1, y_max = 1;
 	double x_min = -2, x_max = 0.5;
 	int iter = 250; // maximum iterations
-	double interval_x = x_div/(map->ex-map->sx+1);
+	double interval_x = x_div / (map->ex - map->sx + 1);
 	double interval_y = (y_max - y_min) / y_div;
 	double px, py;
-	double c_real = -2+x_div*proc;
+	double c_real = -2 + x_div * proc;
 	double c_imag = y_min;
 	int counter = 0;
 
@@ -298,8 +296,8 @@ int fillField(double *u, MAP *map, double x_div, double y_div, int proc)
 			if ((px != -2) && (py != -2))
 			{
 				// printf("%lf %lf \n", px, py);
-				*(u+counter) = px;
-				*(u+counter+1) = py;
+				*(u + counter) = px;
+				*(u + counter + 1) = py;
 				// printf("px = %lf and ",*(u+counter));
 				// printf("py = %lf\n",*(u+counter+1));
 				counter = counter + 2;
@@ -312,7 +310,6 @@ int fillField(double *u, MAP *map, double x_div, double y_div, int proc)
 		// printf("c_real = %lf \n", *p_c_real);
 	}
 	return counter;
-
 }
 
 // Print local map values
@@ -331,7 +328,7 @@ void printField(double *u, MAP *map)
 
 // Fill global field with each processor's values
 
-void fillGlobalField(double *u, MAP *map, double *glob, int gsx,int counter)
+void fillGlobalField(double *u, MAP *map, double *glob, int gsx, int counter)
 {
 	// each processor fill its part of the global field
 	int r;				// for error checking
@@ -342,14 +339,15 @@ void fillGlobalField(double *u, MAP *map, double *glob, int gsx,int counter)
 	{
 		// printf("Global values\n");
 
-			for (int i = 0; i < counter; i++)
-			{
-				*(glob+i) = *(u+i);
-				// printf("Re/Im = %lf\n",*(glob+i));
-				printf("%lf ",*(glob+i));
-				if (i%2 != 0) printf("\n");
-			}
-			// printf("he acabado y counter = %d\n",counter);
+		for (int i = 0; i < counter; i++)
+		{
+			*(glob + i) = *(u + i);
+			// printf("Re/Im = %lf\n",*(glob+i));
+			printf("%lf ", *(glob + i));
+			if (i % 2 != 0)
+				printf("\n");
+		}
+		// printf("he acabado y counter = %d\n",counter);
 		for (int i = 1; i <= (nproc() - 1); i++)
 		{
 			// Create a receive vector (sx, ex, sy, ey)
@@ -374,16 +372,17 @@ void fillGlobalField(double *u, MAP *map, double *glob, int gsx,int counter)
 
 			int counter3 = 0;
 
-			for (int i = (counter); i < counter+counter2; i++)
+			for (int i = (counter); i < counter + counter2; i++)
 			{
-				*(glob+i) = *(vr2+counter3);
+				*(glob + i) = *(vr2 + counter3);
 				//printf("prueba vr %lf\n",*(vr2+counter3));
 				// printf("reim = %lf\n",*(glob+i));
-				printf("%lf ",*(glob+i));
-				if (counter3%2 != 0) printf("\n");
+				printf("%lf ", *(glob + i));
+				if (counter3 % 2 != 0)
+					printf("\n");
 				counter3++;
 			}
-			counter = counter+counter2;
+			counter = counter + counter2;
 
 			// printf("he rebut %lf %lf \n", *(vr2), *(vr2 + 1));
 
@@ -398,7 +397,7 @@ void fillGlobalField(double *u, MAP *map, double *glob, int gsx,int counter)
 
 		for (int i = 0; i <= counter; i++)
 		{
-			*(glob+i) = *(u+i);
+			*(glob + i) = *(u + i);
 			//printf("reim = %lf\n",*(glob+i));
 		}
 
