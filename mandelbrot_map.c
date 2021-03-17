@@ -12,103 +12,103 @@ Plot Mandelbrot set using MPI
 // Libraries
 #include <stdio.h>	// Standard Input and Output Library
 #include <stdlib.h> // Library for defining functions to perform general functions (malloc())
-#include <math.h>	  // Math library
-#include "mpi.h"	  // MPI library
+#include <math.h>	// Math library
+#include "mpi.h"	// MPI library
 
 // Macros
 #define U(x, y) *(u + (x - map->sx + map->hs) + (y - map->sy + map->hs) * (map->ex - map->sx + 1 + 2 * map->hs))
-#define GLOB(x,y) *(glob + (x - map->gsx + map->hs) + (y - map->gsy + map->hs) * (map->gex - map->gsx + 1 + 2 * map->hs))
+#define GLOB(x, y) *(glob + (x - map->gsx + map->hs) + (y - map->gsy + map->hs) * (map->gex - map->gsx + 1 + 2 * map->hs))
 // #define GLOB(x,y) *(glob + x + (y-1) * (map->gex-map->gsx+1))
 #define SR(x, y) *(sr2 + (x - sr1[0] + map->hs) + (y - sr1[2] + map->hs) * (sr1[1] - sr1[0] + 1 + 2 * map->hs))
 
 // This structure contains all the data to access a distributed 2d array
 typedef struct Maps
 {
-	int sx, ex, sy, ey;     // Sizes
-  int gsx, gex, gsy, gey; //
-	int hs;                 // Halo size
+	int sx, ex, sy, ey;		// Sizes
+	int gsx, gex, gsy, gey; //
+	int hs;					// Halo size
 } MAP;
 
 // MPI function prototypes
-void checkr(int r, char *txt);										                                      // Check state
-int proc();																				                                      // Rank of the actual processor
-int nproc();																			                                      // Size of total number processors
-void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end);      // Divide tasks between processors
+void checkr(int r, char *txt);															// Check state
+int proc();																				// Rank of the actual processor
+int nproc();																			// Size of total number processors
+void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end);		// Divide tasks between processors
 void createMap(int NPX, int NPY, int gsx, int gex, int gsy, int gey, int hs, MAP *map); // Each processor create its own local map
-void printMap(MAP *map);                                                                // Print actual processor rank, mystart and myend
-double *allocField(MAP *map);															                              // Allocate memory for local map
-double *allocGlobalField(MAP *map);																				              // Allocate memory for the global field
-void fillField(double *u, MAP *m);														                          // Fill local map with values
-void printField(double *u, MAP *map);																										// Print local map values
-void fillGlobalField(double *u, double *glob, MAP *map);			  												// Fill global map with values
-void printGlobalField(double *glob, MAP *map);																					// Print global field values
+void printMap(MAP *map);																// Print actual processor rank, mystart and myend
+double *allocField(MAP *map);															// Allocate memory for local map
+double *allocGlobalField(MAP *map);														// Allocate memory for the global field
+void fillField(double *u, MAP *m);														// Fill local map with values
+void printField(double *u, MAP *map);													// Print local map values
+void fillGlobalField(double *u, double *glob, MAP *map);								// Fill global map with values
+void printGlobalField(double *glob, MAP *map);											// Print global field values
 
 // Mandelbrot function prototypes
 double Mandelbrot(int i, int j, int gex, int gey);
 
 int main(int argc, char **argv)
 {
-    // Map variables
-    int NPX = 2;  // Number of processors in X axis
-    int NPY = 2;  // Number of processors in Y axis
-    int gsx = 1;  // Global X start index
-    int gex = 10;  // Global X end index
-    int gsy = 1;  // Global Y start index
-    int gey = 10;  // Global Y end index
-    int hs = 0;	  // Halo size
-    MAP map_;
-	  MAP *map = &map_;
+	// Map variables
+	int NPX = 3;  // Number of processors in X axis
+	int NPY = ;	  // Number of processors in Y axis
+	int gsx = 1;  // Global X start index
+	int gex = 50; // Global X end index
+	int gsy = 1;  // Global Y start index
+	int gey = 50; // Global Y end index
+	int hs = 0;	  // Halo size
+	MAP map_;
+	MAP *map = &map_;
 
-    // MPI variables
-	  int r; // Error checking
+	// MPI variables
+	int r; // Error checking
 
-    // Memory variables
-    double *u, *glob;
+	// Memory variables
+	double *u, *glob;
 
-    // Start MPI
-	  r = MPI_Init(&argc, &argv);
-	  checkr(r, "Initiate");
+	// Start MPI
+	r = MPI_Init(&argc, &argv);
+	checkr(r, "Initiate");
 
-    // Create local map
-    createMap(NPX, NPY, gsx, gex, gsy, gey, hs, map);
+	// Create local map
+	createMap(NPX, NPY, gsx, gex, gsy, gey, hs, map);
 
-    // Print local processor rank, mystart and myend
-	  // printMap(map);
+	// Print local processor rank, mystart and myend
+	// printMap(map);
 
-    // Allocate memory for local map
-    u = allocField(map);
-		// printf("\nLocal memory allocated successfully! \n\n");
+	// Allocate memory for local map
+	u = allocField(map);
+	// printf("\nLocal memory allocated successfully! \n\n");
 
-		// Fill map with values
-		fillField(u, map);
-		// printf("Local map filled successfully! \n\n");
+	// Fill map with values
+	fillField(u, map);
+	// printf("Local map filled successfully! \n\n");
 
-		// Print local map
-		// printField(u, map);
+	// Print local map
+	// printField(u, map);
 
-	  // Allocate memory for global map
-  	glob = allocGlobalField(map);
-		// printf("\nGlobal memory allocated successfully! \n\n");
+	// Allocate memory for global map
+	glob = allocGlobalField(map);
+	// printf("\nGlobal memory allocated successfully! \n\n");
 
-		// Fill global field with each processor's values
-		fillGlobalField(u, glob, map);
+	// Fill global field with each processor's values
+	fillGlobalField(u, glob, map);
 
-		if (proc() == 0)
-		{
-			// Print global map
-			printGlobalField(glob, map);
-			// printf("\nGlobal map printed successfully! \n\n");
-		}
+	if (proc() == 0)
+	{
+		// Print global map
+		printGlobalField(glob, map);
+		// printf("\nGlobal map printed successfully! \n\n");
+	}
 
-		// Free allocated memory
-		free(u);
-		free(glob);
+	// Free allocated memory
+	free(u);
+	free(glob);
 
-		// End MPI
-		MPI_Finalize();
+	// End MPI
+	MPI_Finalize();
 
-		// End main
-		exit(0);
+	// End main
+	exit(0);
 }
 // EOF
 /* -------------------------------------------------------------------------- */
@@ -184,15 +184,15 @@ void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end
 
 void createMap(int NPX, int NPY, int gsx, int gex, int gsy, int gey, int hs, MAP *map)
 {
-  map->gsx = gsx;
-  map->gex = gex;
-  map->gsy = gsy;
-  map->gey = gey;
+	map->gsx = gsx;
+	map->gex = gex;
+	map->gsy = gsy;
+	map->gey = gey;
 	map->hs = hs;
-  // Worksplit in x direction
-	worksplit(&(map->sx), &(map->ex), proc()%NPX, NPX, map->gsx, map->gex);
-  // Worksplit in y direction
-  worksplit(&(map->sy), &(map->ey), proc()/NPX, NPY, map->gsy, map->gey);
+	// Worksplit in x direction
+	worksplit(&(map->sx), &(map->ex), proc() % NPX, NPX, map->gsx, map->gex);
+	// Worksplit in y direction
+	worksplit(&(map->sy), &(map->ey), proc() / NPX, NPY, map->gsy, map->gey);
 }
 
 // Displays the memory map on the screen
@@ -200,7 +200,7 @@ void createMap(int NPX, int NPY, int gsx, int gex, int gsy, int gey, int hs, MAP
 void printMap(MAP *map)
 {
 	printf("So, as I'm processor %d, I start with x%d and end with x%d\n", proc(), map->sx, map->ex);
-  printf("So, as I'm processor %d, I start with y%d and end with y%d\n", proc(), map->sy, map->ey);
+	printf("So, as I'm processor %d, I start with y%d and end with y%d\n", proc(), map->sy, map->ey);
 }
 
 // Memory allocation of each field (local limits)
@@ -211,8 +211,8 @@ double *allocField(MAP *map)
 	double *myField;
 	// printf("debug: %d %d %d %d %d\n", map->sx, map->ex, map->sy, map->ey, map->hs);
 	myField = (double *)malloc(sizeof(double) *
-                      (map->ex - map->sx + 1 + 2 * map->hs) *
-                      (map->ey - map->sy + 1 + 2 * map->hs));
+							   (map->ex - map->sx + 1 + 2 * map->hs) *
+							   (map->ey - map->sy + 1 + 2 * map->hs));
 
 	//if memory cannot be allocated
 
@@ -234,52 +234,53 @@ void fillField(double *u, MAP *map)
 		for (int i = map->sx; i <= (map->ex); i++)
 		{
 			// U(i, j) = (i + j / 10.0);
-      U(i, j) = Mandelbrot(i, j, map->gex, map->gey);
+			U(i, j) = Mandelbrot(i, j, map->gex, map->gey);
 		}
 	}
 }
-
 
 // Mandelbrot function
 
 double Mandelbrot(int i, int j, int gex, int gey)
 {
-  double x_max = 1;
-  double x_min = -2;
-  double y_max = 1.5;
-  double y_min = -1.5;
+	double x_max = 1;
+	double x_min = -2;
+	double y_max = 1.5;
+	double y_min = -1.5;
 
-  double dx = (x_max-x_min)/gex;
-  double dy = (y_max-y_min)/gey;
+	double dx = (x_max - x_min) / gex;
+	double dy = (y_max - y_min) / gey;
 
-  double counter = 0;
-  double iterations = 50;
-  double Re = 0, Im = 0;
-  double Re_aux, Im_aux;
-  double c_real = x_min + i*dx;
-  double c_imag = y_min + j*dy;
-  int diverge = 0;
-  double modulus, value;
+	double counter = 0;
+	double iterations = 50;
+	double Re = 0, Im = 0;
+	double Re_aux, Im_aux;
+	double c_real = x_min + i * dx;
+	double c_imag = y_min + j * dy;
+	int diverge = 0;
+	double modulus, value;
 
-  while((counter < iterations) && (!diverge))
-  {
-      Re_aux = Re*Re - Im*Im + c_real;
-      Im_aux = 2*Re*Im + c_imag;
+	while ((counter < iterations) && (!diverge))
+	{
+		Re_aux = Re * Re - Im * Im + c_real;
+		Im_aux = 2 * Re * Im + c_imag;
 
-      modulus = Re_aux*Re_aux+Im_aux*Im_aux;
+		modulus = Re_aux * Re_aux + Im_aux * Im_aux;
 
-      if (modulus > 4 ) {diverge = 1;}
+		if (modulus > 4)
+		{
+			diverge = 1;
+		}
 
-      Re = Re_aux;
-      Im = Im_aux;
+		Re = Re_aux;
+		Im = Im_aux;
 
-      counter++;
-  }
+		counter++;
+	}
 
-value = counter/iterations;
+	value = counter / iterations;
 
-return value;
-
+	return value;
 }
 
 // Print local map values
@@ -320,9 +321,9 @@ double *allocGlobalField(MAP *map)
 
 void fillGlobalField(double *u, double *glob, MAP *map)
 {
-	int r;							// for error checking
+	int r;				// for error checking
 	int t1 = 0, t2 = 1; // tags, allow to identify messages
-	MPI_Status st;			// check tag
+	MPI_Status st;		// check tag
 
 	if (proc() == 0)
 	{
@@ -330,8 +331,8 @@ void fillGlobalField(double *u, double *glob, MAP *map)
 		{
 			for (int i = map->sx; i <= (map->ex); i++)
 			{
-				GLOB(i,j) = U(i, j);
-				printf("%lf ",U(i, j));
+				GLOB(i, j) = U(i, j);
+				printf("%lf ", U(i, j));
 			}
 			printf("\n");
 		}
@@ -360,7 +361,7 @@ void fillGlobalField(double *u, double *glob, MAP *map)
 			{
 				for (int i2 = sr1[0]; i2 <= sr1[1]; i2++)
 				{
-					GLOB(i2,j2) = SR(i2,j2);
+					GLOB(i2, j2) = SR(i2, j2);
 					// printf("%lf ",SR(i2,j2));
 				}
 				// printf("\n");
@@ -395,7 +396,7 @@ void printGlobalField(double *glob, MAP *map)
 	{
 		for (int i = map->gsx; i <= map->gex; i++)
 		{
-			printf("%lf ", GLOB(i,j));
+			printf("%lf ", GLOB(i, j));
 		}
 		printf("\n");
 	}
