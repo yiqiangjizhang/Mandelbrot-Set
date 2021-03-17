@@ -36,23 +36,23 @@ double *allocField(MAP *map, int y_div);													  // Allocate memory for lo
 void fillField(double *u, MAP *map, double x_div, double y_div, int proc);					  // Fill local map with values
 double distance(double x, double y);														  // Squared distance between points (x,y) and origin (0,0)
 void compute(double x, double y, double c_real, double c_imag, double *ans_x, double *ans_y); // Return the n-iteration of the Mandelbrot expression
-int mandelbrot(int iter, double c_real, double c_imag);			  // Compute the set of numbers that are inside Mandelbrot's set
+int mandelbrot(int iter, double c_real, double c_imag);										  // Compute the set of numbers that are inside Mandelbrot's set
 
 // Main function
 int main(int argc, char **argv)
 {
 
 	// Declare variables
-	int gsx = 1;		 		 // Global X start index
-	int gex = 1000;		 	 // Global X end index
-	int hs = 0;			 		 // Halo size
+	int gsx = 1;		 // Global X start index
+	int gex = 1000;		 // Global X end index
+	int hs = 0;			 // Halo size
 	double y_div = 1000; // Number of divisions in Y-axis
 
 	// MPI variables
 	int r; // Error checking
 
 	// Data variables
-	double *u; // Array of local map values
+	double *u;		  // Array of local map values
 	MAP map_;		  // Map structure
 	MAP *map = &map_; // Map pointer
 
@@ -213,7 +213,7 @@ void fillField(double *u, MAP *map, double x_div, double y_div, int proc)
 				// printf("%lf %lf \n", px, py);
 				*(u + counter) = c_real;
 				*(u + counter + 1) = c_imag;
-				printf("%lf %lf \n",*(u+counter),*(u+counter+1));
+				printf("%lf %lf \n", *(u + counter), *(u + counter + 1));
 				counter = counter + 2;
 			}
 			c_imag = c_imag + interval_y;
@@ -268,5 +268,4 @@ int mandelbrot(int iter, double c_real, double c_imag)
 	}
 
 	return loc_convergence;
-
 }

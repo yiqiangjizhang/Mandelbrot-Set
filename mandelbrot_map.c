@@ -50,7 +50,7 @@ int main(int argc, char **argv)
 {
 	// Map variables
 	int NPX = 3;  // Number of processors in X axis
-	int NPY = ;	  // Number of processors in Y axis
+	int NPY = 3;  // Number of processors in Y axis
 	int gsx = 1;  // Global X start index
 	int gex = 50; // Global X end index
 	int gsy = 1;  // Global Y start index
@@ -332,7 +332,7 @@ void fillGlobalField(double *u, double *glob, MAP *map)
 			for (int i = map->sx; i <= (map->ex); i++)
 			{
 				GLOB(i, j) = U(i, j);
-				printf("%lf ", U(i, j));
+				// printf("%lf ", U(i, j));
 			}
 			printf("\n");
 		}
