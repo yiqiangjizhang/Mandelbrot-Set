@@ -49,12 +49,12 @@ double Mandelbrot(int i, int j, int gex, int gey);
 int main(int argc, char **argv)
 {
 	// Map variables
-	int NPX = 3;  // Number of processors in X axis
-	int NPY = 3;  // Number of processors in Y axis
+	int NPX = 2;  // Number of processors in X axis
+	int NPY = 2;  // Number of processors in Y axis
 	int gsx = 1;  // Global X start index
-	int gex = 50; // Global X end index
+	int gex = 10; // Global X end index
 	int gsy = 1;  // Global Y start index
-	int gey = 50; // Global Y end index
+	int gey = 10; // Global Y end index
 	int hs = 0;	  // Halo size
 	MAP map_;
 	MAP *map = &map_;
@@ -239,48 +239,44 @@ void fillField(double *u, MAP *map)
 	}
 }
 
-// Mandelbrot function
+double Mandelbrot(int i, int j, int gex, int gey) double x_max = 1;
+double x_min = -2;
+double y_max = 1.5;
+double y_min = -1.5;
 
-double Mandelbrot(int i, int j, int gex, int gey)
+double dx = (x_max - x_min) / gex;
+double dy = (y_max - y_min) / gey;
+
+double counter = 0;
+double iterations = 50;
+double Re = 0, Im = 0;
+double Re_aux, Im_aux;
+double c_real = x_min + i * dx;
+double c_imag = y_min + j * dy;
+int diverge = 0;
+double modulus, value;
+
+while ((counter < iterations) && (!diverge))
 {
-	double x_max = 1;
-	double x_min = -2;
-	double y_max = 1.5;
-	double y_min = -1.5;
+	Re_aux = Re * Re - Im * Im + c_real;
+	Im_aux = 2 * Re * Im + c_imag;
 
-	double dx = (x_max - x_min) / gex;
-	double dy = (y_max - y_min) / gey;
+	modulus = Re_aux * Re_aux + Im_aux * Im_aux;
 
-	double counter = 0;
-	double iterations = 50;
-	double Re = 0, Im = 0;
-	double Re_aux, Im_aux;
-	double c_real = x_min + i * dx;
-	double c_imag = y_min + j * dy;
-	int diverge = 0;
-	double modulus, value;
-
-	while ((counter < iterations) && (!diverge))
+	if (modulus > 4)
 	{
-		Re_aux = Re * Re - Im * Im + c_real;
-		Im_aux = 2 * Re * Im + c_imag;
-
-		modulus = Re_aux * Re_aux + Im_aux * Im_aux;
-
-		if (modulus > 4)
-		{
-			diverge = 1;
-		}
-
-		Re = Re_aux;
-		Im = Im_aux;
-
-		counter++;
+		diverge = 1;
 	}
 
-	value = counter / iterations;
+	Re = Re_aux;
+	Im = Im_aux;
 
-	return value;
+	counter++;
+}
+
+value = counter / iterations;
+
+return value;
 }
 
 // Print local map values
@@ -332,7 +328,7 @@ void fillGlobalField(double *u, double *glob, MAP *map)
 			for (int i = map->sx; i <= (map->ex); i++)
 			{
 				GLOB(i, j) = U(i, j);
-				// printf("%lf ", U(i, j));
+				printf("%lf ", U(i, j));
 			}
 			printf("\n");
 		}
@@ -355,37 +351,33 @@ void fillGlobalField(double *u, double *glob, MAP *map)
 			}
 
 			r = MPI_Recv(sr2, (sr1[1] - sr1[0] + 1) * (sr1[3] - sr1[2] + 1), MPI_DOUBLE, i, t1, MPI_COMM_WORLD, &st);
-			checkr(r, "receive2");
-
-			for (int j2 = sr1[2]; j2 <= sr1[3]; j2++)
 			{
-				for (int i2 = sr1[0]; i2 <= sr1[1]; i2++)
-				{
-					GLOB(i2, j2) = SR(i2, j2);
-					// printf("%lf ",SR(i2,j2));
-				}
-				// printf("\n");
+				GLOB(i2, j2) = SR(i2, j2);
+				GLOB(i2, j2) = SR(i2, j2);
+				// printf("%lf ",SR(i2,j2));
 			}
-
-			free(sr2);
+			// printf("\n");
 		}
+
+		free(sr2);
 	}
+}
 
-	// proc != 0
+// proc != 0
 
-	else
-	{
-		int vs[4];
-		vs[0] = map->sx;
-		vs[1] = map->ex;
-		vs[2] = map->sy;
-		vs[3] = map->ey;
+else
+{
+	int vs[4];
+	vs[0] = map->sx;
+	vs[1] = map->ex;
+	vs[2] = map->sy;
+	vs[3] = map->ey;
 
-		r = MPI_Send(u, (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, 0 /*destination*/, t1, MPI_COMM_WORLD);
-		checkr(r, "send1");
-		r = MPI_Send(vs, 4, MPI_INT, 0 /*destination*/, t2, MPI_COMM_WORLD);
-		checkr(r, "send2");
-	}
+	r = MPI_Send(u, (map->ex - map->sx + 1) * (map->ey - map->sy + 1), MPI_DOUBLE, 0 /*destination*/, t1, MPI_COMM_WORLD);
+	checkr(r, "send1");
+	r = MPI_Send(vs, 4, MPI_INT, 0 /*destination*/, t2, MPI_COMM_WORLD);
+	checkr(r, "send2");
+}
 }
 
 // Print global field values
