@@ -33,10 +33,11 @@ void worksplit(int *mystart, int *myend, int proc, int nproc, int start, int end
 void createMap(int gsx, int gex, int hs, MAP *map);											  // Each processor create its own local map
 void printMap(MAP *map);																	  // Print actual processor rank, mystart and myend
 double *allocField(MAP *map, int y_div);													  // Allocate memory for local map
-void fillField(double *u, MAP *map, double x_div, double y_div, int proc);					  // Fill local map with values
+int fillField(double *u, MAP *map, double x_div, double y_div, int proc);					  // Fill local map with values
 double distance(double x, double y);														  // Squared distance between points (x,y) and origin (0,0)
 void compute(double x, double y, double c_real, double c_imag, double *ans_x, double *ans_y); // Return the n-iteration of the Mandelbrot expression
 int mandelbrot(int iter, double c_real, double c_imag);			  // Compute the set of numbers that are inside Mandelbrot's set
+void printField(double *u, MAP *map, int counter);
 
 // Main function
 int main(int argc, char **argv)
@@ -44,9 +45,11 @@ int main(int argc, char **argv)
 
 	// Declare variables
 	int gsx = 1;		 		 // Global X start index
-	int gex = 1000;		 	 // Global X end index
+	int gex = 10000;		 	 // Global X end index
 	int hs = 0;			 		 // Halo size
-	double y_div = 1000; // Number of divisions in Y-axis
+	double x_div = gex - gsx + 1;
+	double y_div = 10000; // Number of divisions in Y-axis
+
 
 	// MPI variables
 	int r; // Error checking
@@ -65,12 +68,6 @@ int main(int argc, char **argv)
 
 	// printMap(map);
 
-	// Limits of the domain of study
-	double x_min = -2, x_max = 0.5;
-
-	// Number of divisions in the X-axis
-	double x_div = (x_max - x_min) / (gex - gsx + 1) * (map->ex - map->sx + 1);
-
 	// Allocate memory for local map
 	u = allocField(map, y_div); // Local vector (pointer)
 
@@ -78,7 +75,10 @@ int main(int argc, char **argv)
 	int counter;
 
 	// Fill map with values and return the amount of numbers inside Mandelbrot's set for each processor
-	fillField(u, map, x_div, y_div, proc());
+	counter = fillField(u, map, x_div, y_div, proc());
+
+	// Print each processor data
+	if (counter != 0) {printField(u, map, counter);}
 
 	// printf("\nMandelbrot printed! \n\n");
 
@@ -188,21 +188,21 @@ double *allocField(MAP *map, int y_div)
 }
 
 // Fill local map with values
-void fillField(double *u, MAP *map, double x_div, double y_div, int proc)
+int fillField(double *u, MAP *map, double x_div, double y_div, int proc)
 {
 	double y_min = -1, y_max = 1;	// Limits of the area of study for the real part
 	double x_min = -2, x_max = 0.5; // Limits of the area of study for the imaginary part
 	int iter = 250;					// maximum iterations
-	double interval_x = x_div / (map->ex - map->sx + 1);
+	double interval_x = (x_max - x_min) / x_div;
 	double interval_y = (y_max - y_min) / y_div;
 	int convergence;
-	double c_real = -2 + x_div * proc;
+	double c_real = -2 + ((x_max - x_min)/x_div * (map->ex - map-> sx + 1)) * proc;
 	double c_imag = y_min;
 	int counter = 0;
 
 	for (int i = map->sx; i <= map->ex; i++)
 	{
-		for (int j = 1; j <= y_div; j++)
+		for (int j = 1; j < y_div; j++)
 		{
 			// printf("c_real = %lf c_imag = %lf \n", c_real, c_imag);
 			convergence = mandelbrot(iter, c_real, c_imag);
@@ -213,16 +213,14 @@ void fillField(double *u, MAP *map, double x_div, double y_div, int proc)
 				// printf("%lf %lf \n", px, py);
 				*(u + counter) = c_real;
 				*(u + counter + 1) = c_imag;
-				printf("%lf %lf \n",*(u+counter),*(u+counter+1));
 				counter = counter + 2;
 			}
 			c_imag = c_imag + interval_y;
-			// printf("c_imag = %lf \n", c_imag);
 		}
 		c_imag = y_min;
 		c_real = c_real + interval_x;
-		// printf("c_real = %lf \n", *p_c_real);
 	}
+	return counter;
 }
 
 // Squared distance between points (x,y) and origin (0,0)
@@ -269,4 +267,23 @@ int mandelbrot(int iter, double c_real, double c_imag)
 
 	return loc_convergence;
 
+}
+
+void printField(double *u, MAP *map, int counter)
+{
+		// MPI variables
+		int r; // Error checking
+		int p;
+		for (p = 0; p < nproc(); p++)
+		{
+				if (proc() == p)
+				{
+						for (int i = 0; i < counter; i=i+2)
+						{
+								printf("%lf %lf \n",*(u+i),*(u+i+1));
+						}
+				}
+		// Waits until all the processors arrive to the barrier
+		r = MPI_Barrier(MPI_COMM_WORLD); checkr(r,"Barrier");
+		}
 }
