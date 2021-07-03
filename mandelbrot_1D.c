@@ -14,7 +14,7 @@ Plot Mandelbrot set using MPI using 1D array
 #include <stdio.h>	// Standard Input and Output Library
 #include <stdlib.h> // Library for defining functions to perform general functions (malloc())
 #include <math.h>	// Math library
-#include "mpi.h"	// MPI library
+#include "mpi.h"	// MPI libraroy
 
 // This structure contains all the data to access a distributed 2d array
 typedef struct Maps
